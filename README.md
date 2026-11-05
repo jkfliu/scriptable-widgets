@@ -7,7 +7,7 @@ iOS widgets for [Scriptable](https://scriptable.app), kept in one repo with shar
 | **SG Haze** | Singapore PM2.5 and PSI for one region, with a 24-hour chart | [`dist/SG Haze.js`](dist/SG%20Haze.js) | [widgets/sg-haze](widgets/sg-haze/README.md) |
 | **Market Prices** | FX rates, stock and index prices, and crypto prices | [`dist/Market Prices.js`](dist/Market%20Prices.js) | [widgets/market-prices](widgets/market-prices/README.md) |
 
-To install one on your phone, open its script on GitHub, tap **Raw**, copy it all, and paste it into a new Scriptable script with the widget's name. Each widget's README has the details. [PLAN.md](PLAN.md) has the history of how the repo was built.
+To install one on your phone, open its script in Safari ([Market Prices.js](https://raw.githubusercontent.com/jkfliu/scriptable-widgets/main/dist/Market%20Prices.js), [SG Haze.js](https://raw.githubusercontent.com/jkfliu/scriptable-widgets/main/dist/SG%20Haze.js)), tap **Share** › **Save to Files**, and save it in **iCloud Drive › Scriptable**. It then appears in Scriptable under the widget's name. Each widget's README has the details. [PLAN.md](PLAN.md) has the history of how the repo was built.
 
 ## Layout
 

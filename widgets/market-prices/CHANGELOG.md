@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.1 (2026-11-05)
+
+- `cro` now works as a crypto symbol (Cronos, CoinGecko ID `crypto-com-chain`). Before, it showed —.
+
 ## 1.0.0 (2026-11-05)
 
 First release.

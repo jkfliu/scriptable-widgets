@@ -16,6 +16,7 @@ Someone sent you this widget? Here's how to set it up. The [setup page](https://
 
 First install the free [Scriptable](https://apps.apple.com/app/scriptable/id1405459188) app and open it once. Then use either method:
 
+- **Download:** on the iPhone, open **[SG Haze.js](https://raw.githubusercontent.com/jkfliu/scriptable-widgets/main/dist/SG%20Haze.js)** in Safari, tap **Share** › **Save to Files**, and save it in **iCloud Drive › Scriptable**. It then appears in Scriptable as **SG Haze**. To update by hand later, download it again and choose **Replace**.
 - **AirDrop:** when the `SG Haze.js` file arrives, choose **Save to Files** and save it in **iCloud Drive › Scriptable**. It then appears in Scriptable as **SG Haze**.
 - **Copy and paste:** open [`dist/SG Haze.js`](https://github.com/jkfliu/scriptable-widgets/blob/main/dist/SG%20Haze.js) on GitHub, tap **Raw**, and copy all of it. In Scriptable, tap **+**, paste, then tap the title at the top and rename the script **SG Haze**.
 

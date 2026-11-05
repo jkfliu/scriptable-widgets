@@ -195,7 +195,7 @@ const COINGECKO_IDS = new Map([
   ['ada', 'cardano'], ['doge', 'dogecoin'], ['trx', 'tron'], ['dot', 'polkadot'], ['ltc', 'litecoin'],
   ['link', 'chainlink'], ['avax', 'avalanche-2'], ['bch', 'bitcoin-cash'], ['xlm', 'stellar'],
   ['atom', 'cosmos'], ['uni', 'uniswap'], ['shib', 'shiba-inu'], ['ton', 'the-open-network'],
-  ['usdt', 'tether'], ['usdc', 'usd-coin'],
+  ['usdt', 'tether'], ['usdc', 'usd-coin'], ['cro', 'crypto-com-chain'],
 ]);
 
 function toCoinGeckoId(symbol) {
@@ -531,7 +531,7 @@ const HELP_TEXT = [
 // The build strips the requires below.
 
 // Set by scripts/build.js from widget.json.
-const VERSION = '1.0.0';
+const VERSION = '1.0.1';
 
 const KEYCHAIN_KEY = 'market-prices.coingecko-key';
 const CACHE_FILE = 'market-prices-cache.json';
