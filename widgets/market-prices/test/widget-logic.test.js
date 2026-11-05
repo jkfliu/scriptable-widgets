@@ -5,6 +5,7 @@ const path = require('node:path');
 const {
   yahooUrl, coinGeckoUrl, coinGeckoHeaders, itemKey, planRequests, collectQuotes, buildRows,
   layoutFor, refreshAfter, parseParameter, HELP_TEXT, CACHE_MAX_AGE_DAYS, columnMetrics,
+  readSettings, updateDue, updateAvailable,
 } = require('../src/core.js');
 
 const text = (name) => fs.readFileSync(path.join(__dirname, 'fixtures', name), 'utf8');
@@ -296,5 +297,56 @@ describe('columnMetrics', () => {
 
   test('a column count below 1 is treated as 1', () => {
     assert.deepEqual(columnMetrics('medium', 0), columnMetrics('medium', 1));
+  });
+});
+
+describe('update settings', () => {
+  test('update checks are on by default, with nothing checked yet', () => {
+    for (const raw of [{}, null, undefined, 'oops', [], 42]) {
+      assert.deepEqual(readSettings(raw), { updateChecks: true, lastChecked: null, latest: null }, `raw: ${JSON.stringify(raw)}`);
+    }
+  });
+
+  test('keeps a saved choice, last check time and latest manifest', () => {
+    assert.deepEqual(
+      readSettings({ updateChecks: false, lastChecked: NOW, latest: { version: '1.2.0', notes: 'New' } }),
+      { updateChecks: false, lastChecked: NOW, latest: { version: '1.2.0', notes: 'New' } },
+    );
+  });
+
+  test('only an explicit false turns checks off; malformed values are dropped', () => {
+    assert.equal(readSettings({ updateChecks: 'no' }).updateChecks, true);
+    assert.equal(readSettings({ lastChecked: 'yesterday' }).lastChecked, null);
+    assert.equal(readSettings({ latest: { version: '1.2' } }).latest, null);
+    assert.deepEqual(readSettings({ latest: { version: '1.2.0' } }).latest, { version: '1.2.0', notes: '' });
+  });
+});
+
+describe('updateDue', () => {
+  test('due when never checked, or a full day after the last check', () => {
+    assert.equal(updateDue(readSettings({}), NOW), true);
+    assert.equal(updateDue(readSettings({ lastChecked: NOW - DAY }), NOW), true);
+    assert.equal(updateDue(readSettings({ lastChecked: NOW - DAY + 1 }), NOW), false);
+  });
+
+  test('never due when update checks are off', () => {
+    assert.equal(updateDue(readSettings({ updateChecks: false }), NOW), false);
+  });
+});
+
+describe('updateAvailable', () => {
+  const latest = (version) => readSettings({ latest: { version, notes: '' } });
+
+  test('only when the latest release is newer than the installed version', () => {
+    assert.equal(updateAvailable(latest('1.1.0'), '1.0.1'), true);
+    assert.equal(updateAvailable(latest('1.10.0'), '1.9.0'), true);
+    assert.equal(updateAvailable(latest('1.0.1'), '1.0.1'), false);
+    assert.equal(updateAvailable(latest('1.0.0'), '1.0.1'), false);
+  });
+
+  test('not when nothing is known, the version is "dev", or checks are off', () => {
+    assert.equal(updateAvailable(readSettings({}), '1.0.1'), false);
+    assert.equal(updateAvailable(latest('1.1.0'), 'dev'), false);
+    assert.equal(updateAvailable(readSettings({ updateChecks: false, latest: { version: '9.0.0' } }), '1.0.1'), false);
   });
 });

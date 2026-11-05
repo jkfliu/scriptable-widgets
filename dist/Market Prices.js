@@ -35,6 +35,82 @@ function formatUpdated(time) {
   return t ? `Updated ${t}` : '';
 }
 
+// Update checker shared by widgets: versions, the version.json manifest, and where to fetch updates.
+// Each widget has its own manifest at widgets/<folder>/version.json and its script at dist/<output>
+// on the release branch of this repo.
+
+
+const VERSION_PATTERN = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
+const REPO_PATTERN = /^[A-Za-z0-9-]+\/[A-Za-z0-9._-]+$/;
+const WIDGET_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
+const SCRIPT_PATTERN = /^[^/\\]+\.js$/;
+const UPDATE_CHECK_EVERY = DAY;
+const SCRIPTABLE_HEADER = '// Variables used by Scriptable.';
+const RELEASE_BRANCH = 'main';
+
+const parseVersion = (v) => (typeof v === 'string' && v.match(VERSION_PATTERN)?.slice(1).map(Number)) || null;
+const isVersion = (v) => parseVersion(v) !== null;
+
+// The line scripts/build.js writes into the bundle and isPlausibleUpdate looks for.
+const versionLine = (version) => `const VERSION = '${version}';`;
+
+// 1 if a is newer, -1 if older, 0 if equal; null if either isn't a plain x.y.z version.
+function compareVersions(a, b) {
+  const [pa, pb] = [parseVersion(a), parseVersion(b)];
+  if (!pa || !pb) return null;
+  for (let i = 0; i < 3; i++) {
+    if (pa[i] !== pb[i]) return pa[i] > pb[i] ? 1 : -1;
+  }
+  return 0;
+}
+
+// version.json text to { version, notes }; null if it isn't valid.
+function parseManifest(text) {
+  let json;
+  try {
+    json = JSON.parse(text);
+  } catch (e) {
+    return null;
+  }
+  if (!json || typeof json !== 'object' || !isVersion(json.version)) return null;
+  return { version: json.version, notes: typeof json.notes === 'string' ? json.notes : '' };
+}
+
+// At most one check a day. A last check in the future means the clock changed, so check again.
+function shouldCheckForUpdate(lastChecked, now) {
+  const last = toMs(lastChecked);
+  if (!Number.isFinite(last)) return true;
+  const elapsed = toMs(now) - last;
+  return elapsed < 0 || elapsed >= UPDATE_CHECK_EVERY;
+}
+
+// Raw GitHub URLs for a widget's manifest and built script, or null if any part is malformed.
+// repo: owner/repo. widget: the folder under widgets/. script: the output filename in dist/.
+function updateUrl(repo, widget, script) {
+  if (typeof repo !== 'string' || !REPO_PATTERN.test(repo) || repo.includes('..')) return null;
+  if (typeof widget !== 'string' || !WIDGET_PATTERN.test(widget)) return null;
+  if (typeof script !== 'string' || !SCRIPT_PATTERN.test(script) || script === '.js' || script.startsWith('..')) return null;
+  const base = `https://raw.githubusercontent.com/${repo}/${RELEASE_BRANCH}`;
+  return {
+    manifest: `${base}/widgets/${widget}/version.json`,
+    script: `${base}/dist/${encodeURIComponent(script)}`,
+  };
+}
+
+// Sanity checks on a downloaded script before it replaces the installed one.
+function isPlausibleUpdate(source, expectedVersion, currentVersion) {
+  const fail = (reason) => ({ ok: false, reason });
+  if (typeof source !== 'string' || !source.trim()) return fail('The download was empty.');
+  if (!source.startsWith(SCRIPTABLE_HEADER)) return fail("The download isn't a Scriptable script.");
+  const newer = compareVersions(expectedVersion, currentVersion);
+  if (newer === null) return fail('A version number was malformed.');
+  if (newer <= 0) return fail(`${expectedVersion} isn't newer than the installed ${currentVersion}.`);
+  if (!source.includes(`\n${versionLine(expectedVersion)}\n`)) {
+    return fail(`The download's version doesn't match ${expectedVersion}.`);
+  }
+  return { ok: true };
+}
+
 // Thin wrappers over Scriptable's FileManager and Keychain, shared by widgets.
 // They use Scriptable globals at call time, so the tests stand those in.
 
@@ -62,7 +138,7 @@ function keychainRemove(key) {
 }
 
 // Pure logic for the Market Prices widget. No Scriptable APIs here: everything is tested under Node.
-// The build strips the require below; shared/time.js comes before this file in the bundle.
+// The build strips the requires below; the shared modules come before this file in the bundle.
 
 // --- Parameter ---
 // Format: fx:USDSGD,SGD/JPY | stocks:D05.SI,^GSPC | crypto:btc,eth | cur:usd
@@ -526,15 +602,40 @@ const HELP_TEXT = [
   DEFAULTS.small,
 ].join('\n');
 
+// --- Update checks ---
+
+// The saved settings file, with defaults: update checks are on unless turned off.
+// { updateChecks, lastChecked (epoch ms or null), latest ({ version, notes } or null) }
+function readSettings(raw) {
+  const obj = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  return {
+    updateChecks: obj.updateChecks !== false,
+    lastChecked: finite(obj.lastChecked),
+    latest: obj.latest ? parseManifest(JSON.stringify(obj.latest)) : null,
+  };
+}
+
+// Whether to fetch version.json now: checks on, and at most once a day.
+const updateDue = (settings, now) => settings.updateChecks && shouldCheckForUpdate(settings.lastChecked, now);
+
+// Whether the latest known release is newer than the installed version (never for a dev build).
+const updateAvailable = (settings, version) =>
+  settings.updateChecks && compareVersions(settings.latest?.version, version) === 1;
+
 // Scriptable layer: requests, Keychain, file cache and drawing. Kept thin: logic lives in core.js.
 // Only runs inside Scriptable; test/widget.test.js runs the built bundle against stand-ins.
 // The build strips the requires below.
 
-// Set by scripts/build.js from widget.json.
-const VERSION = '1.0.1';
+// All set by scripts/build.js from widget.json; the update source is fixed in the published script.
+const VERSION = '1.1.0';
+const UPDATE_REPO = 'jkfliu/scriptable-widgets';
+const UPDATE_WIDGET = 'market-prices';
+const UPDATE_SCRIPT = 'Market Prices.js';
 
 const KEYCHAIN_KEY = 'market-prices.coingecko-key';
 const CACHE_FILE = 'market-prices-cache.json';
+const SETTINGS_FILE = 'market-prices-settings.json';
+const BACKUP_NAME = 'Market Prices (previous).js';
 const OPEN_URL = 'https://finance.yahoo.com';
 // Yahoo rejects requests without a normal browser User-Agent.
 const USER_AGENT =
@@ -550,6 +651,7 @@ const TONES = {
   flat: MUTED,
 };
 const DIVIDER = Color.dynamic(new Color('#d1d1d6'), new Color('#3a3a3c'));
+const UPDATE_COLOUR = new Color('#2e86de');
 const DIMMED = 0.5;
 const ROW_HEIGHT = 22;
 
@@ -629,7 +731,7 @@ function addDivider(stack, m, height) {
   stack.addSpacer(m.dividerGap);
 }
 
-function buildWidget(family, columns, rows, updatedAt, now) {
+function buildWidget(family, columns, rows, updatedAt, now, update) {
   const w = new ListWidget();
   w.backgroundColor = BG;
   w.url = OPEN_URL;
@@ -651,15 +753,84 @@ function buildWidget(family, columns, rows, updatedAt, now) {
   });
 
   w.addSpacer();
-  addText(w, updatedAt === null ? 'No prices yet' : formatUpdated(updatedAt), Font.systemFont(9), MUTED);
+  const footer = w.addStack();
+  footer.layoutHorizontally();
+  addText(footer, updatedAt === null ? 'No prices yet' : formatUpdated(updatedAt), Font.systemFont(9), MUTED);
+  if (update) {
+    footer.addSpacer();
+    addText(footer, '↑ update', Font.mediumSystemFont(9), UPDATE_COLOUR);
+  }
   return w;
 }
 
-async function render(family, now) {
+// Builds the widget. When checkUpdates is set and a check is due, version.json is fetched
+// alongside the prices, so the check never delays the refresh.
+async function render(family, now, settings, checkUpdates = false) {
   const parsed = resolveParameter(args.widgetParameter, family);
   const { columns } = layoutFor(family, parsed);
-  const { rows, updatedAt } = await loadRows(columns.flat(), parsed.currency, now);
-  return buildWidget(family, columns, rows, updatedAt, now);
+  const [, { rows, updatedAt }] = await Promise.all([
+    checkUpdates && UPDATE_URLS && updateDue(settings, now) ? checkForUpdate(settings, now) : null,
+    loadRows(columns.flat(), parsed.currency, now),
+  ]);
+  return buildWidget(family, columns, rows, updatedAt, now, showUpdate(settings));
+}
+
+// --- Updates (on by default; turned off in the in-app menu) ---
+
+// null in a dev build (no repo set), which turns all update features off.
+const UPDATE_URLS = updateUrl(UPDATE_REPO, UPDATE_WIDGET, UPDATE_SCRIPT);
+
+const loadSettings = () => readSettings(readJsonFile(SETTINGS_FILE));
+const saveSettings = (settings) => writeJsonFile(SETTINGS_FILE, settings);
+const showUpdate = (settings) => Boolean(UPDATE_URLS) && updateAvailable(settings, VERSION);
+
+// The response body as text; throws on a non-200 status.
+async function loadText(url, timeout) {
+  const req = new Request(url);
+  req.timeoutInterval = timeout;
+  const text = await req.loadString();
+  if (req.response.statusCode !== 200) throw new Error(`HTTP ${req.response.statusCode}`);
+  return text;
+}
+
+// Fetches version.json and records it. Only reads the manifest: nothing is installed here.
+async function checkForUpdate(settings, now) {
+  settings.lastChecked = now; // even on failure, so a broken network doesn't mean a check every refresh
+  try {
+    const manifest = parseManifest(await loadText(UPDATE_URLS.manifest, 10));
+    if (manifest) settings.latest = manifest;
+  } catch (e) {
+    console.error(`Market Prices update check: ${e}`);
+  }
+  saveSettings(settings);
+}
+
+// The FileManager that owns a path: iCloud if it's in Scriptable's iCloud folder, else local.
+function fileManagerFor(path) {
+  try {
+    const icloud = FileManager.iCloud();
+    if (path.startsWith(icloud.documentsDirectory())) return icloud;
+  } catch (e) {
+    // iCloud is off for Scriptable, so the script must be stored locally.
+  }
+  return FileManager.local();
+}
+
+// Downloads the new script, checks it, backs up the current one, then overwrites it.
+// Throws with a readable message on any failure, leaving the current script untouched.
+async function installUpdate(latest) {
+  let source;
+  try {
+    source = await loadText(UPDATE_URLS.script, 30);
+  } catch (e) {
+    throw new Error(`Download failed (${e.message ?? e}).`);
+  }
+  const check = isPlausibleUpdate(source, latest.version, VERSION);
+  if (!check.ok) throw new Error(check.reason);
+  const self = module.filename;
+  const fm = fileManagerFor(self);
+  fm.writeString(self.replace(/[^/]+$/, BACKUP_NAME), fm.readString(self));
+  fm.writeString(self, source);
 }
 
 // --- In-app menu ---
@@ -685,24 +856,77 @@ async function showHelp() {
   await a.present();
 }
 
+async function showMessage(title, message) {
+  const a = new Alert();
+  a.title = title;
+  a.message = message;
+  a.addAction('OK');
+  await a.present();
+}
+
+// true if the user taps `ok`.
+async function confirm(title, message, ok, cancel = 'Cancel') {
+  const a = new Alert();
+  a.title = title;
+  a.message = message;
+  a.addAction(ok);
+  a.addCancelAction(cancel);
+  return (await a.present()) === 0;
+}
+
+async function offerUpdate(settings) {
+  const { version, notes } = settings.latest;
+  const message = `${notes || 'No release notes.'}\n\nInstalled: ${VERSION}. The current script is kept as "${BACKUP_NAME}".`;
+  if (!(await confirm(`Update to ${version}?`, message, 'Install update', 'Not now'))) return;
+  try {
+    await installUpdate(settings.latest);
+    await showMessage('Update installed', `Market Prices ${version} is installed. Run the script again to use it.`);
+  } catch (e) {
+    await showMessage('Update not installed', `${e.message ?? e}\n\nYour current script hasn't changed.`);
+  }
+}
+
+async function toggleUpdateChecks(settings, now) {
+  if (settings.updateChecks) {
+    settings.updateChecks = false;
+    saveSettings(settings);
+    return;
+  }
+  const message = `Once a day, Market Prices will look for a new version at github.com/${UPDATE_REPO}. `
+    + 'Nothing installs by itself. If you tap Install, the new script downloaded from that repo '
+    + 'replaces this one and runs on your phone.';
+  if (!(await confirm('Turn on update checks?', message, 'Turn on'))) return;
+  settings.updateChecks = true;
+  await checkForUpdate(settings, now);
+}
+
 async function runInApp(now) {
+  const settings = loadSettings();
   for (;;) {
     const hasKey = keychainHas(KEYCHAIN_KEY);
+    const update = showUpdate(settings);
     const menu = new Alert();
     menu.title = 'Market Prices';
-    menu.message = `Version ${VERSION}\nCoinGecko API key: ${hasKey ? 'set' : 'not set'}`;
+    menu.message = [
+      `Version ${VERSION}${update ? ` (${settings.latest.version} available)` : ''}`,
+      `CoinGecko API key: ${hasKey ? 'set' : 'not set'}`,
+      ...(UPDATE_URLS ? [`Update checks: ${settings.updateChecks ? 'on' : 'off'}`] : []),
+    ].join('\n');
+    // [title, action, destructive]
     const actions = [
-      ['Preview small', async () => (await render('small', now)).presentSmall()],
-      ['Preview medium', async () => (await render('medium', now)).presentMedium()],
+      ...(update ? [[`Install update ${settings.latest.version}`, () => offerUpdate(settings)]] : []),
+      ['Preview small', async () => (await render('small', now, settings)).presentSmall()],
+      ['Preview medium', async () => (await render('medium', now, settings)).presentMedium()],
       [hasKey ? 'Change CoinGecko API key' : 'Set CoinGecko API key', promptForKey],
+      ...(hasKey ? [['Clear CoinGecko API key', () => keychainRemove(KEYCHAIN_KEY), true]] : []),
+      ['Help', showHelp],
+      ...(UPDATE_URLS ? [[settings.updateChecks ? 'Turn off update checks' : 'Turn on update checks',
+        () => toggleUpdateChecks(settings, now)]] : []),
     ];
-    for (const [title] of actions) menu.addAction(title);
-    if (hasKey) {
-      menu.addDestructiveAction('Clear CoinGecko API key');
-      actions.push(['Clear CoinGecko API key', () => keychainRemove(KEYCHAIN_KEY)]);
+    for (const [title, , destructive] of actions) {
+      if (destructive) menu.addDestructiveAction(title);
+      else menu.addAction(title);
     }
-    menu.addAction('Help');
-    actions.push(['Help', showHelp]);
     menu.addCancelAction('Done');
     const choice = await menu.presentSheet();
     if (choice === -1) return;
@@ -714,7 +938,7 @@ async function runInApp(now) {
 
 const now = Date.now();
 if (config.runsInWidget) {
-  Script.setWidget(await render(config.widgetFamily, now));
+  Script.setWidget(await render(config.widgetFamily, now, loadSettings(), true));
 } else {
   await runInApp(now);
 }

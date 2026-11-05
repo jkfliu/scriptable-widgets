@@ -1,4 +1,4 @@
 {
-  "version": "1.0.1",
-  "notes": "Adds CRO (Cronos) as a crypto symbol."
+  "version": "1.1.0",
+  "notes": "Update checks: once a day the widget looks for a new version and shows ↑ update; install it from the menu in Scriptable. Turn them off in the same menu."
 }

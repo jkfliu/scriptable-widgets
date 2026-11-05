@@ -64,7 +64,7 @@ function texts(node) {
 // alertChoices: indexes to pick in successive Alerts (default: cancel, -1).
 // textInputs: what the user types into successive text fields.
 async function runBundle(source, {
-  family = 'medium', parameter = null, now, responder, files = {}, keychain = {}, runsInWidget = true, alertChoices = [], textInputs = [],
+  family = 'medium', parameter = null, now, responder, files = {}, keychain = {}, runsInWidget = true, alertChoices = [], textInputs = [], scriptPath = '/documents/Market Prices.js',
 } = {}) {
   const requests = [];
   const alerts = [];
@@ -121,6 +121,7 @@ async function runBundle(source, {
     },
     FileManager: { local: () => fm, iCloud: () => fm },
     Script: { setWidget: (w) => { widget = w; }, complete() {} },
+    module: { filename: scriptPath },
     args: { widgetParameter: parameter },
     config: { runsInWidget, runsInApp: !runsInWidget, widgetFamily: runsInWidget ? family : undefined },
   };

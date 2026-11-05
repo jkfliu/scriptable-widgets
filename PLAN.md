@@ -207,5 +207,5 @@ This is a manual checklist for me, with Claude Code's help where useful.
 
 ## Out of scope for now
 - Market Prices: mini trend lines, lock screen widgets, portfolio values
-- Turning on Market Prices sharing and update checks (the shared update checker makes this easy later)
+- Turning on Market Prices sharing and update checks (the shared update checker makes this easy later). **Update checks done in Market Prices 1.1.0**, on by default like SG Haze.
 - Android support

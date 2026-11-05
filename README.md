@@ -55,7 +55,7 @@ sh scripts/release.sh <widget> <version> "<notes>"   # release one widget
 sh scripts/release.sh market-prices 1.0.1 "Fixes the closed marker"
 ```
 
-This checks the version is newer than the widget's last release, runs all tests, sets the version in its `widget.json`, builds only that widget into `dist/`, scans the bundle for secrets, and writes its `version.json`. It stops before changing anything if a check or test fails. Then add a CHANGELOG entry, commit, tag (`market-prices-v1.0.1`) and push. Widgets with update checks (SG Haze) offer the new version once it's on `main`.
+This checks the version is newer than the widget's last release, builds that widget, runs all tests, sets the version in its `widget.json`, builds it again into `dist/`, scans the bundle for secrets, and writes its `version.json`. If a check or test fails, it stops before changing the version (only the first build may have refreshed `dist/`). Then add a CHANGELOG entry, commit, tag (`market-prices-v1.0.1`) and push. Widgets with update checks (SG Haze) offer the new version once it's on `main`.
 
 Each widget's `widget.json` drives its build:
 

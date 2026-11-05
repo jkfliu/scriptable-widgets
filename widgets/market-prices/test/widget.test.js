@@ -27,7 +27,14 @@ const fixtures = async (url) => (BY_URL.has(url)
 const offline = async () => { throw new Error('The Internet connection appears to be offline.'); };
 
 const source = () => buildWidget('market-prices').source;
-const run = (opts) => runBundle(source(), { now: NOW, responder: fixtures, parameter: PARAM, ...opts });
+const VERSION = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'widget.json'), 'utf8')).version;
+const SETTINGS = '/documents/market-prices-settings.json';
+const SCRIPT = '/documents/Market Prices.js';
+const MANIFEST = 'https://raw.githubusercontent.com/jkfliu/scriptable-widgets/main/widgets/market-prices/version.json';
+const SCRIPT_URL = 'https://raw.githubusercontent.com/jkfliu/scriptable-widgets/main/dist/Market%20Prices.js';
+// By default an update check has just happened, so tests about prices see no update traffic.
+const checkedJustNow = () => ({ [SETTINGS]: JSON.stringify({ updateChecks: true, lastChecked: NOW }) });
+const run = (opts) => runBundle(source(), { now: NOW, responder: fixtures, parameter: PARAM, files: checkedJustNow(), ...opts });
 const words = (widget) => texts(widget).map((t) => t.text);
 const priceText = (widget, value) => texts(widget).find((t) => t.text === value);
 
@@ -245,7 +252,114 @@ describe('in the app', () => {
   });
 });
 
+describe('update checks', () => {
+  const NEXT = '9.0.0';
+  const manifest = JSON.stringify({ version: NEXT, notes: 'Bigger numbers' });
+  const newScript = () => source().replace(`\nconst VERSION = '${VERSION}';\n`, `\nconst VERSION = '${NEXT}';\n`);
+  const withUpdates = (extra = {}) => async (url) => {
+    if (url === MANIFEST) return { status: 200, body: manifest };
+    if (url === SCRIPT_URL) return extra.script ?? { status: 200, body: newScript() };
+    return fixtures(url);
+  };
+
+  test('on by default: a first run checks version.json alongside the prices', async () => {
+    const { requests, files } = await run({ files: {}, responder: withUpdates() });
+    assert.ok(requests.some((r) => r.url === MANIFEST));
+    const saved = JSON.parse(files[SETTINGS]);
+    assert.equal(saved.lastChecked, NOW);
+    assert.deepEqual(saved.latest, { version: NEXT, notes: 'Bigger numbers' });
+  });
+
+  test('a newer release shows "↑ update" in the widget', async () => {
+    const { widget } = await run({ files: {}, responder: withUpdates() });
+    assert.ok(words(widget).includes('↑ update'));
+  });
+
+  test('no badge when the latest release is the installed version', async () => {
+    const same = async (url) => (url === MANIFEST ? { status: 200, body: JSON.stringify({ version: VERSION }) } : fixtures(url));
+    assert.ok(!words((await run({ files: {}, responder: same })).widget).includes('↑ update'));
+  });
+
+  test('checks at most once a day', async () => {
+    const { requests } = await run({ responder: withUpdates() });
+    assert.ok(!requests.some((r) => r.url === MANIFEST));
+  });
+
+  test('turned off: no check and no badge, even with a newer release saved', async () => {
+    const files = { [SETTINGS]: JSON.stringify({ updateChecks: false, latest: { version: NEXT, notes: '' } }) };
+    const { requests, widget } = await run({ files, responder: withUpdates() });
+    assert.ok(!requests.some((r) => r.url === MANIFEST));
+    assert.ok(!words(widget).includes('↑ update'));
+  });
+
+  test('a failed check still records the time, so it is not retried on every refresh', async () => {
+    const failing = async (url) => { if (url === MANIFEST) throw new Error('offline'); return fixtures(url); };
+    const { files, widget } = await run({ files: {}, responder: failing });
+    assert.equal(JSON.parse(files[SETTINGS]).lastChecked, NOW);
+    assert.ok(words(widget).includes('70.36'), 'prices still shown');
+  });
+
+  test('in the app: the menu shows the version and offers the update first', async () => {
+    const files = { ...checkedJustNow(), [SETTINGS]: JSON.stringify({ lastChecked: NOW, latest: { version: NEXT, notes: '' } }) };
+    const { alerts } = await run({ runsInWidget: false, files });
+    assert.match(alerts[0].message, new RegExp(`Version ${VERSION.replace(/\./g, '\\.')}`));
+    assert.equal(alerts[0].actions[0], `Install update ${NEXT}`);
+    assert.ok(alerts[0].actions.includes('Turn off update checks'));
+  });
+
+  test('Install update: shows the notes, keeps a backup, and replaces the script', async () => {
+    const files = { [SETTINGS]: JSON.stringify({ lastChecked: NOW, latest: { version: NEXT, notes: 'Bigger numbers' } }), [SCRIPT]: 'old script' };
+    // Menu: Install update (0), confirm (0), "installed" message (0), then Done.
+    const { alerts } = await run({ runsInWidget: false, files, responder: withUpdates(), alertChoices: [0, 0, 0, -1] });
+    assert.match(alerts[1].message, /Bigger numbers/);
+    assert.equal(files['/documents/Market Prices (previous).js'], 'old script');
+    assert.ok(files[SCRIPT].includes(`\nconst VERSION = '${NEXT}';\n`));
+    assert.match(alerts[2].title, /installed/);
+  });
+
+  test('a download that is not the expected script is refused, leaving the current one', async () => {
+    const files = { [SETTINGS]: JSON.stringify({ lastChecked: NOW, latest: { version: NEXT, notes: '' } }), [SCRIPT]: 'old script' };
+    const bad = withUpdates({ script: { status: 200, body: '<html>Not found</html>' } });
+    const { alerts } = await run({ runsInWidget: false, files, responder: bad, alertChoices: [0, 0, 0, -1] });
+    assert.equal(files[SCRIPT], 'old script');
+    assert.match(alerts[2].title, /not installed/);
+  });
+
+  test('a failed download (HTTP 404) is refused too', async () => {
+    const files = { [SETTINGS]: JSON.stringify({ lastChecked: NOW, latest: { version: NEXT, notes: '' } }), [SCRIPT]: 'old script' };
+    const missing = withUpdates({ script: { status: 404, body: '404: Not Found' } });
+    await run({ runsInWidget: false, files, responder: missing, alertChoices: [0, 0, 0, -1] });
+    assert.equal(files[SCRIPT], 'old script');
+  });
+
+  test('Turn off update checks saves the choice; turning them on asks first, then checks', async () => {
+    const files = checkedJustNow();
+    // No key, no update: Preview small, Preview medium, Set key, Help, Turn off update checks (4).
+    await run({ runsInWidget: false, files, alertChoices: [4, -1] });
+    assert.equal(JSON.parse(files[SETTINGS]).updateChecks, false);
+    const { requests } = await run({ runsInWidget: false, files, responder: withUpdates(), alertChoices: [4, 0, -1] });
+    assert.equal(JSON.parse(files[SETTINGS]).updateChecks, true);
+    assert.ok(requests.some((r) => r.url === MANIFEST));
+  });
+
+  test('turning update checks on can be cancelled: they stay off and nothing is fetched', async () => {
+    const files = { [SETTINGS]: JSON.stringify({ updateChecks: false, lastChecked: NOW }) };
+    const { requests } = await run({ runsInWidget: false, files, responder: withUpdates(), alertChoices: [4, -1, -1] });
+    assert.equal(JSON.parse(files[SETTINGS]).updateChecks, false);
+    assert.ok(!requests.some((r) => r.url === MANIFEST));
+  });
+});
+
 describe('the bundle', () => {
+  test('only talks to Yahoo Finance, CoinGecko and this repo on GitHub', () => {
+    const hosts = new Set([...source().matchAll(/https?:\/\/([^/'"`\s]+)/g)].map((m) => m[1]));
+    assert.deepEqual([...hosts].sort(), ['api.coingecko.com', 'finance.yahoo.com', 'query1.finance.yahoo.com', 'raw.githubusercontent.com']);
+  });
+
+  test('never runs downloaded code: no eval, Function constructor or importModule', () => {
+    assert.ok(!/\beval\s*\(|new Function\s*\(|\bimportModule\s*\(/.test(source()));
+  });
+
   test('never contains a CoinGecko key value', () => {
     assert.ok(!/x-cg-demo-api-key['"]\s*:\s*['"][^'"]+['"]/.test(source()));
   });

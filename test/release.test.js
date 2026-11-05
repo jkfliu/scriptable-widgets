@@ -21,10 +21,12 @@ function copyRepo() {
 }
 
 function release(dir, args, testCmd = PASS) {
+  // Without NODE_TEST_CONTEXT, so a `node --test` run by the script reports its own failures.
+  const { NODE_TEST_CONTEXT, ...env } = process.env;
   const result = spawnSync('sh', ['scripts/release.sh', ...args], {
     cwd: dir,
     encoding: 'utf8',
-    env: { ...process.env, RELEASE_TEST_CMD: testCmd },
+    env: { ...env, RELEASE_TEST_CMD: testCmd },
   });
   return { code: result.status, out: result.stdout + result.stderr };
 }
@@ -113,6 +115,15 @@ describe('release.sh on success', () => {
     const other = fs.readFileSync(path.join(dir, 'dist/Market Prices.js'), 'utf8');
     release(dir, ['sg-haze', '1.2.0', 'Notes']);
     assert.equal(fs.readFileSync(path.join(dir, 'dist/Market Prices.js'), 'utf8'), other);
+  });
+
+  test('a source change since the last build does not block the release (the widget is built before testing)', () => {
+    const dir = copyRepo();
+    fs.appendFileSync(path.join(dir, 'widgets/market-prices/src/core.js'), '\n// a change since the last build\n');
+    // The real bundle checks, including "the committed dist/ matches a fresh build".
+    const { code, out } = release(dir, ['market-prices', '9.0.0', 'Notes'], 'node --test test/build.test.js');
+    assert.equal(code, 0, out);
+    assert.ok(fs.readFileSync(path.join(dir, 'dist/Market Prices.js'), 'utf8').includes('// a change since the last build'));
   });
 
   test('notes with quotes and newlines are stored as written', () => {

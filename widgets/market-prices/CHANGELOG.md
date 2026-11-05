@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.0 (2026-11-05)
+
+- Update checks, on by default: once a day the widget reads `widgets/market-prices/version.json` from github.com/jkfliu/scriptable-widgets, and shows **↑ update** when there's a newer version. Install it from the menu in Scriptable, after seeing the release notes. The current script is kept as "Market Prices (previous)". Nothing installs by itself.
+- **Turn off update checks** (and back on) in the in-app menu, which also shows whether they're on.
+
 ## 1.0.1 (2026-11-05)
 
 - `cro` now works as a crypto symbol (Cronos, CoinGecko ID `crypto-com-chain`). Before, it showed —.
