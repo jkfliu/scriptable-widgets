@@ -413,6 +413,34 @@ function layoutFor(family, parsed) {
 
 const refreshAfter = (now) => new Date(toMs(now) + REFRESH_MINUTES * 60e3);
 
+// Content widths in points for a 6.1" iPhone, with the widget's padding taken off.
+const CONTENT_WIDTH = { small: 134, medium: 314 };
+const DIVIDER_GAP = 4; // space either side of a divider
+const DIVIDER_WIDTH = 1;
+const LABEL_SHARE = 0.48; // of a column, for the label; the rest is for the price and arrow
+
+// Fixed sizes for a layout, so every label and price in a widget uses one font size and never
+// shrinks: 10 pt with three columns, 11 pt otherwise. Columns, gaps and dividers fill the width.
+function columnMetrics(family, columnCount) {
+  const n = Math.max(1, columnCount | 0);
+  const contentWidth = family === 'small' ? CONTENT_WIDTH.small : CONTENT_WIDTH.medium;
+  const columnWidth = (contentWidth - (n - 1) * (2 * DIVIDER_GAP + DIVIDER_WIDTH)) / n;
+  const fontSize = n >= 3 ? 10 : 11;
+  const arrowFontSize = fontSize - 3;
+  const labelWidth = Math.round(columnWidth * LABEL_SHARE);
+  return {
+    contentWidth,
+    columnWidth,
+    dividerGap: DIVIDER_GAP,
+    dividerWidth: DIVIDER_WIDTH,
+    fontSize,
+    arrowFontSize,
+    arrowWidth: arrowFontSize * 0.8 + 1, // the arrow plus the 1 pt before it
+    labelWidth,
+    priceWidth: columnWidth - labelWidth,
+  };
+}
+
 const HELP_TEXT = [
   'Set the widget\'s Parameter to choose what it shows, e.g.',
   'fx:USDSGD,SGDJPY | stocks:D05.SI,^GSPC | crypto:btc,eth | cur:sgd',
@@ -437,5 +465,5 @@ module.exports = {
   parseYahooChart, parseCoinGecko, direction,
   label, formatPrice, COLUMN_MAX_CHARS,
   yahooUrl, coinGeckoUrl, coinGeckoHeaders, itemKey, planRequests, collectQuotes, buildRows,
-  layoutFor, refreshAfter, HELP_TEXT, CACHE_MAX_AGE_DAYS,
+  layoutFor, refreshAfter, HELP_TEXT, CACHE_MAX_AGE_DAYS, columnMetrics,
 };

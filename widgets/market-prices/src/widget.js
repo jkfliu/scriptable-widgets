@@ -3,6 +3,7 @@
 // The build strips the requires below.
 const {
   resolveParameter, layoutFor, planRequests, collectQuotes, buildRows, coinGeckoHeaders, refreshAfter, HELP_TEXT,
+  columnMetrics,
 } = require('./core.js');
 const { formatUpdated } = require('../../../shared/time.js');
 const {
@@ -28,11 +29,8 @@ const TONES = {
   down: Color.dynamic(new Color('#cf222e'), new Color('#ff6b6b')),
   flat: MUTED,
 };
+const DIVIDER = Color.dynamic(new Color('#d1d1d6'), new Color('#3a3a3c'));
 const DIMMED = 0.5;
-
-// Content widths in points for a 6.1" iPhone (padding taken off). Text shrinks to fit if needed.
-const CONTENT_WIDTH = { small: 134, medium: 314 };
-const COLUMN_GAP = 10;
 const ROW_HEIGHT = 22;
 
 // --- Data ---
@@ -65,36 +63,50 @@ async function loadRows(items, currency, now) {
 
 // --- Drawing ---
 
+// Text at a fixed size: one line, never shrunk (too long gets "…").
 function addText(stack, text, font, colour, opacity = 1) {
   const t = stack.addText(text);
   t.font = font;
   t.textColor = colour;
   t.textOpacity = opacity;
   t.lineLimit = 1;
-  t.minimumScaleFactor = 0.7;
   return t;
 }
 
-// Label (with a small "closed" under it when that market is closed) on the left; price and arrow on the right.
-function addRow(column, row, width) {
+// A fixed-width label slot (with a small "closed" under the label when that market is closed),
+// then a fixed-width price slot with the price and arrow pushed right.
+function addRow(column, row, m) {
   const line = column.addStack();
   line.layoutHorizontally();
   line.centerAlignContent();
-  line.size = new Size(width, ROW_HEIGHT);
+  line.size = new Size(m.columnWidth, ROW_HEIGHT);
   const opacity = row.dimmed ? DIMMED : 1;
 
   const left = line.addStack();
   left.layoutVertically();
-  addText(left, row.label, Font.semiboldSystemFont(11), FG, opacity);
+  left.size = new Size(m.labelWidth, ROW_HEIGHT);
+  addText(left, row.label, Font.semiboldSystemFont(m.fontSize), FG, opacity);
   if (row.closed) addText(left, 'closed', Font.systemFont(7), MUTED);
 
-  line.addSpacer();
+  const right = line.addStack();
+  right.layoutHorizontally();
+  right.centerAlignContent();
+  right.size = new Size(m.priceWidth, ROW_HEIGHT);
+  right.addSpacer();
   const colour = TONES[row.tone] ?? MUTED;
-  addText(line, row.price, Font.mediumSystemFont(11), colour, opacity);
+  addText(right, row.price, Font.mediumSystemFont(m.fontSize), colour, opacity);
   if (row.arrow) {
-    line.addSpacer(1);
-    addText(line, row.arrow, Font.systemFont(8), colour, opacity);
+    right.addSpacer(1);
+    addText(right, row.arrow, Font.systemFont(m.arrowFontSize), colour, opacity);
   }
+}
+
+function addDivider(stack, m, height) {
+  stack.addSpacer(m.dividerGap);
+  const line = stack.addStack();
+  line.size = new Size(m.dividerWidth, height);
+  line.backgroundColor = DIVIDER;
+  stack.addSpacer(m.dividerGap);
 }
 
 function buildWidget(family, columns, rows, updatedAt, now) {
@@ -107,15 +119,15 @@ function buildWidget(family, columns, rows, updatedAt, now) {
   const body = w.addStack();
   body.layoutHorizontally();
   body.topAlignContent();
-  const total = family === 'small' ? CONTENT_WIDTH.small : CONTENT_WIDTH.medium;
-  const width = (total - COLUMN_GAP * (columns.length - 1)) / columns.length;
+  const m = columnMetrics(family, columns.length);
+  const height = Math.max(...columns.map((c) => c.length)) * ROW_HEIGHT;
   let next = 0;
   columns.forEach((items, i) => {
-    if (i > 0) body.addSpacer(COLUMN_GAP);
+    if (i > 0) addDivider(body, m, height);
     const column = body.addStack();
     column.layoutVertically();
     column.topAlignContent();
-    for (let n = 0; n < items.length; n++) addRow(column, rows[next++], width);
+    for (let n = 0; n < items.length; n++) addRow(column, rows[next++], m);
   });
 
   w.addSpacer();

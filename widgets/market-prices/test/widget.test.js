@@ -43,9 +43,10 @@ describe('medium widget with fixtures', () => {
 
   test('one column per group, top-aligned, with no headers', async () => {
     const { widget } = await run();
-    const columns = widget.children.find((c) => c.kind === 'stack' && !c.vertical).children.filter((c) => c.kind === 'stack');
+    const body = widget.children.find((c) => c.kind === 'stack' && !c.vertical);
+    const columns = body.children.filter((c) => c.kind === 'stack' && c.vertical);
     assert.equal(columns.length, 3);
-    assert.ok(columns.every((c) => c.vertical && c.align === 'top'));
+    assert.ok(columns.every((c) => c.align === 'top'));
     assert.ok(!words(widget).some((w) => /^(fx|stocks|crypto)$/i.test(w)));
   });
 
@@ -82,6 +83,46 @@ describe('medium widget with fixtures', () => {
     for (const r of requests) {
       const isGecko = r.url.includes('coingecko.com');
       assert.equal(r.headers['x-cg-demo-api-key'], isGecko ? 'demo-key' : undefined, r.url);
+    }
+  });
+
+  test('a thin divider between each pair of columns, none at the edges', async () => {
+    const { widget } = await run();
+    const body = widget.children.find((c) => c.kind === 'stack' && !c.vertical);
+    const dividers = body.children.filter((c) => c.kind === 'stack' && c.children.length === 0);
+    assert.equal(dividers.length, 2);
+    assert.ok(dividers.every((d) => d.size.width === 1 && d.size.height > 0 && d.backgroundColor));
+    assert.notEqual(body.children[0], dividers[0]);
+    assert.notEqual(body.children.at(-1), dividers[1]);
+  });
+
+  test('no divider with one column', async () => {
+    const { widget } = await run({ parameter: 'stocks:D05.SI,^GSPC' });
+    const body = widget.children.find((c) => c.kind === 'stack' && !c.vertical);
+    assert.equal(body.children.filter((c) => c.kind === 'stack' && c.children.length === 0).length, 0);
+  });
+
+  test('fixed font sizes: no shrinking, and every label and price the same size', async () => {
+    const { widget } = await run();
+    const footer = texts(widget).at(-1);
+    const rowTexts = texts(widget).filter((t) => t !== footer);
+    assert.ok(rowTexts.every((t) => t.minimumScaleFactor === undefined || t.minimumScaleFactor === 1));
+    const labels = ['USD/SGD', 'D05', 'S&P 500', 'BTC'].map((l) => texts(widget).find((t) => t.text === l));
+    const prices = ['1.2770', '70.36', '7,688.62', '80,303'].map((p) => priceText(widget, p));
+    assert.equal(new Set(labels.map((t) => t.font.size)).size, 1);
+    assert.equal(new Set(prices.map((t) => t.font.size)).size, 1);
+    assert.equal(labels[0].font.size, 10);
+  });
+
+  test('labels and prices sit in fixed-width slots, prices aligned right', async () => {
+    const { widget } = await run();
+    const body = widget.children.find((c) => c.kind === 'stack' && !c.vertical);
+    const rows = body.children.filter((c) => c.vertical).flatMap((col) => col.children);
+    const slotWidths = new Set(rows.map((r) => r.children.filter((c) => c.kind === 'stack').map((s) => s.size.width).join('+')));
+    assert.equal(slotWidths.size, 1, `slots: ${[...slotWidths]}`);
+    for (const r of rows) {
+      const priceSlot = r.children.filter((c) => c.kind === 'stack')[1];
+      assert.equal(priceSlot.children[0].kind, 'spacer', 'price pushed right');
     }
   });
 

@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const {
   yahooUrl, coinGeckoUrl, coinGeckoHeaders, itemKey, planRequests, collectQuotes, buildRows,
-  layoutFor, refreshAfter, parseParameter, HELP_TEXT, CACHE_MAX_AGE_DAYS,
+  layoutFor, refreshAfter, parseParameter, HELP_TEXT, CACHE_MAX_AGE_DAYS, columnMetrics,
 } = require('../src/core.js');
 
 const text = (name) => fs.readFileSync(path.join(__dirname, 'fixtures', name), 'utf8');
@@ -247,5 +247,54 @@ describe('HELP_TEXT', () => {
       assert.ok(HELP_TEXT.includes(part), `missing: ${part}`);
     }
     assert.ok(HELP_TEXT.includes('fx:USDSGD,SGDAUD,SGDJPY | stocks:^STI,^AXJO,^GSPC | crypto:btc,eth,sol | cur:usd'));
+  });
+});
+
+describe('columnMetrics', () => {
+  test('one font size per layout: 10 pt with three columns, 11 pt otherwise', () => {
+    assert.equal(columnMetrics('medium', 3).fontSize, 10);
+    assert.equal(columnMetrics('medium', 2).fontSize, 11);
+    assert.equal(columnMetrics('medium', 1).fontSize, 11);
+    assert.equal(columnMetrics('small', 1).fontSize, 11);
+  });
+
+  test('columns, gaps and dividers fit the content width exactly', () => {
+    for (const [family, n] of [['medium', 1], ['medium', 2], ['medium', 3], ['small', 1]]) {
+      const m = columnMetrics(family, n);
+      const used = n * m.columnWidth + (n - 1) * (2 * m.dividerGap + m.dividerWidth);
+      assert.ok(Math.abs(used - m.contentWidth) < 1e-9, `${family} ${n}: ${used} vs ${m.contentWidth}`);
+    }
+  });
+
+  test('each column splits into a fixed label slot and a fixed price slot', () => {
+    for (const n of [1, 2, 3]) {
+      const m = columnMetrics('medium', n);
+      assert.ok(m.labelWidth > 0 && m.priceWidth > 0);
+      assert.equal(m.labelWidth + m.priceWidth, m.columnWidth);
+    }
+  });
+
+  test('every column in a layout is the same width', () => {
+    const m = columnMetrics('medium', 3);
+    assert.ok(m.columnWidth > 90 && m.columnWidth < 100, `three columns of ${m.columnWidth} pt`);
+  });
+
+  test('typical labels and prices fit their slots at the chosen size (estimated character widths)', () => {
+    // Rough widths of San Francisco text, as a fraction of the font size.
+    const em = { digit: 0.6, narrow: 0.3, upper: 0.68, other: 0.62 };
+    const width = (s, size) => [...s].reduce((sum, ch) => sum + size * (
+      /[0-9]/.test(ch) ? em.digit : /[.,\s]/.test(ch) ? em.narrow : /[A-Z&]/.test(ch) ? em.upper : em.other), 0);
+    const m = columnMetrics('medium', 3);
+    for (const l of ['S&P 500', 'ASX 200', 'USD/SGD', 'Nasdaq']) {
+      assert.ok(width(l, m.fontSize) <= m.labelWidth, `${l}: ${width(l, m.fontSize)} > ${m.labelWidth}`);
+    }
+    for (const p of ['7,688.62', '8,812.30', '4,512.33', '123.68', '1.2770', '102.5K', '80,303']) {
+      const w = width(p, m.fontSize) + m.arrowWidth;
+      assert.ok(w <= m.priceWidth, `${p}: ${w} > ${m.priceWidth}`);
+    }
+  });
+
+  test('a column count below 1 is treated as 1', () => {
+    assert.deepEqual(columnMetrics('medium', 0), columnMetrics('medium', 1));
   });
 });
