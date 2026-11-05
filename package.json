@@ -1,0 +1,14 @@
+{
+  "name": "scriptable-widgets",
+  "version": "0.0.0",
+  "private": true,
+  "description": "iOS widgets for Scriptable, with shared code and one build setup",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test",
+    "build": "node scripts/build.js",
+    "deploy": "sh scripts/deploy.sh"
+  }
+}

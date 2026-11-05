@@ -1,0 +1,8 @@
+{
+  "name": "SG Haze",
+  "output": "SG Haze.js",
+  "version": "1.1.0",
+  "shared": ["time", "update", "storage"],
+  "icon": { "color": "blue", "glyph": "smog" },
+  "updateRepo": "jkfliu/scriptable-widgets"
+}

@@ -1,0 +1,30 @@
+# Decisions
+
+Changes to the original plan, agreed on 2026-10-24.
+
+| # | Topic | Decision |
+|---|-------|----------|
+| 1 | Refresh time | `nextRefresh(now)` returns the **next :50 strictly after now** (3:39pm → 3:50pm; 3:50pm or 3:55pm → 4:50pm), not 5 past. NEA publishes each hour's reading at about :45. |
+| 2 | Last refresh shown | If there's room, the widget also shows when it last refreshed, as well as the time of the reading. |
+| 3 | 24-hour window | The window **excludes** the reading from exactly 24 hours ago (`now - 24h < time <= now`), giving at most 24 points. |
+| 4 | Update install path | The installer overwrites the script at its own location (`module.filename`), so it works whether scripts are stored in iCloud or on the device. |
+| 5 | Downgrade guard | The installer refuses a download whose `VERSION` isn't newer than the installed one. |
+| 6 | Gap fixture | Use a real day with missing hours if one turns up in the last 30 days. Otherwise make a labelled synthetic fixture from a real day with hours removed. |
+| 7 | Caching yesterday | Not done. Each refresh fetches today, yesterday and latest PSI (3 requests). |
+| 8 | Git | Repo set up in Phase 1, with a first commit after review. |
+| 9 | Later features | Lock screen circular and inline widgets (possibly Phase 5) and threshold alerts (Phase 8) moved from "out of scope" to "for consideration later" in PLAN.md (2026-10-24). |
+| 10 | Build pulled forward | `scripts/build.js`, `scripts/deploy.sh` and the bundle tests were done in Phase 5 (from Phase 6) so the widget could be tried on the phone. The README is still in Phase 6. |
+| 11 | Medium layout | Medium uses the small layout stretched wide (header, numbers side by side, full-width chart, footer), not numbers-left/chart-right. |
+| 12 | Chart style | Black line over pastel background bands for NEA's four PM2.5 levels (Normal/Elevated/High/Very High), from the same table as `pm25Band`. Replaces faint lines at 55 and 150. |
+| 13 | Chart label | The footer says what the chart shows: "PM2.5 24h · Updated 3:00pm". |
+| 14 | Mac preview | `npm run preview -- <region> [--live]` writes `dist/preview.html`: the real bundle rendered with stand-in Scriptable classes, in light/dark and normal/offline states. An approximation; the phone has the final say. |
+| 15 | Update source | Updates come from the public repo `jkfliu/sg-haze-widget` (`updateRepo` in package.json, fixed in the build). `dist/` stays untracked, so each release copies the bundle to a tracked `release/SG Haze.js`. The updater reads `version.json` and `release/SG Haze.js` on `main`. |
+| 16 | Update checks default | Update checks are **on by default** for everyone (PLAN.md said off), and can be turned off in the in-app menu. Installing still only happens when the user taps Install. |
+| 17 | Moved to scriptable-widgets (2026-11-05) | From 1.1.0, SG Haze lives in `widgets/sg-haze/` of `jkfliu/scriptable-widgets` and is built by the repo's `scripts/build.js` from `widget.json`. Updates read `widgets/sg-haze/version.json` and `dist/SG Haze.js` on `main` of that repo; `release/` is retired, since `dist/` is committed there. This replaces #15 for 1.1.0 and later; 1.0.0 installs still check `jkfliu/sg-haze-widget`. |
+
+## Technical fixes (no decision needed)
+
+- The bundle-parse test wraps the bundle in an `async function` before parsing it, because Scriptable allows top-level `await`.
+- The secret-scan test allows `"x-api-key": <variable>` and fails only on a string literal value or a key-shaped token.
+- `psi_twenty_four_hourly` has no `national` value in the live API, so the parsers only use the five regions.
+- Node 20 or later is pinned with `.nvmrc` (22), because nvm's default on this Mac is 18.
