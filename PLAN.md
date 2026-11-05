@@ -87,7 +87,9 @@ Also:
 - Point SG Haze's update URL at this repo and bump its version.
 - Stop for review.
 
-### Phase 4: Market Prices — fixtures
+### Phase 4: Market Prices — fixtures ⏳ Partly done
+scripts/fetch-fixtures.js is written and tested. CoinGecko fixtures are captured (an unknown id returns HTTP 200 with {}). Yahoo returned HTTP 429 for every request from the cloud session, so the Yahoo fixtures and the fixtures README still need a run from a Mac.
+
 Write a small Node script that downloads and saves real responses to widgets/market-prices/test/fixtures/:
 - Yahoo, from https://query1.finance.yahoo.com/v8/finance/chart/{symbol}:
   - stocks: D05.SI, CBA.AX, ^GSPC
@@ -99,7 +101,9 @@ Write a small Node script that downloads and saves real responses to widgets/mar
 
 Document the response shapes in the fixtures README. In particular, note which Yahoo fields give the current price, previous close, last trade time, trading hours and currency. Stop for review.
 
-### Phase 5: Market Prices — parameters (tests first)
+### Phase 5: Market Prices — parameters (tests first) ✅ Done
+Also added resolveParameter(param, family), which applies the default fallback and keeps a valid cur:. FX and stocks are stored uppercase, crypto and cur lowercase; malformed items are dropped and recorded.
+
 
 Parameter format:
 ```
