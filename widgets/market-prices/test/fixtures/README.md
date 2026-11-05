@@ -5,6 +5,7 @@ Real responses from Yahoo Finance and CoinGecko, captured on 2026-11-05. `captur
 | File | Request | Captured | Notes |
 |------|---------|----------|-------|
 | `yahoo-D05.SI.json` | `/v8/finance/chart/D05.SI` | 09:41 SGT | SGX stock, **market open** (regular session 09:00–17:00 SGT) |
+| `yahoo-CBA.AX.json` | `/v8/finance/chart/CBA.AX` | 09:54 SGT (12:54 AEDT) | ASX stock, **market open** (regular session 10:00–16:12 AEDT). Arrays trimmed. See the note on its previous close below |
 | `yahoo-GSPC.json` | `/v8/finance/chart/%5EGSPC` | after 05:51 SGT | S&P 500 index, **market closed** (session ended 05:00 SGT). Arrays trimmed |
 | `yahoo-USDSGD.json` | `/v8/finance/chart/USDSGD=X` | 09:53 SGT | FX pair, open (FX trades about 24 hours on weekdays). Arrays trimmed |
 | `yahoo-invalid.json` | `/v8/finance/chart/NOTAREALTICKER123.SI` | 2026-11-05 | Error response for an unknown symbol |
@@ -18,8 +19,8 @@ Yahoo base URL: `https://query1.finance.yahoo.com`. CoinGecko base URL: `https:/
 
 - **CoinGecko:** by `scripts/fetch-fixtures.js`, without an API key.
 - **Yahoo:** Yahoo answered every request from the Claude Code cloud session with HTTP 429 "Too Many Requests" (it throttles data-centre IPs). So the Yahoo responses were opened in Safari on the iPhone, copied, and pasted into the session. Safari doesn't show the HTTP status, so it's recorded as not known.
-- **Trimmed arrays:** in `yahoo-GSPC.json` and `yahoo-USDSGD.json`, the per-minute arrays (`timestamp` and `indicators.quote[0].*`) are cut to their first 3 and last 3 entries, to avoid hand-copying hundreds of numbers. `meta` is exactly as received, and the shape is unchanged. `yahoo-D05.SI.json` is complete.
-- To refresh these from a Mac or another normal connection: `node scripts/fetch-fixtures.js` (add `--label=closed` to keep a second set captured while markets are closed). Not yet captured: `CBA.AX` and `SGDJPY=X`.
+- **Trimmed arrays:** in `yahoo-GSPC.json`, `yahoo-USDSGD.json` and `yahoo-CBA.AX.json`, the per-minute arrays (`timestamp` and `indicators.quote[0].*`) are cut to their first 3 and last 3 entries (last 4 for CBA.AX, to keep both `null` rows near the end), to avoid hand-copying hundreds of numbers. `meta` is exactly as received, and the shape is unchanged. `yahoo-D05.SI.json` is complete.
+- To refresh these from a Mac or another normal connection: `node scripts/fetch-fixtures.js` (add `--label=closed` to keep a second set captured while markets are closed). Not yet captured: `SGDJPY=X`.
 
 ## Yahoo chart: success shape
 
@@ -62,6 +63,8 @@ Other `meta` fields seen: `symbol`, `exchangeName`, `fullExchangeName`, `exchang
 - **Open or closed: compare *now* with `currentTradingPeriod.regular`.** `regularMarketTime` isn't enough: for ^GSPC it is 16:51 ET, after the 16:00 close.
 - **After the close, `currentTradingPeriod` still describes the session that just ended.** For ^GSPC, captured after 20:00 ET, it still held that day's pre (04:00–09:30), regular (09:30–16:00) and post (16:00–20:00) periods.
 - **FX:** `currency` is the quote currency (SGD for USDSGD). The regular period runs almost 24 hours (00:00–23:59 London time), with zero-length pre and post periods. Volume is always 0.
+- **ASX hours end at 16:12, not 16:00** (`regular.end` for CBA.AX), which matches the ASX closing auction. Use the period Yahoo gives rather than assuming round hours.
+- **CBA.AX: price equals previous close, mid-session.** At 12:54 AEDT, `regularMarketPrice`, `previousClose` and `chartPreviousClose` are all 166.26 and `regularMarketChangePercent` is 0.0, although the day's range is 164.23–167.60. This could be a coincidence (the last trade landing on yesterday's close) or Yahoo reporting a stale previous close for ASX stocks. Not confirmed either way; a later capture would tell. The parser should handle it as it is: a change of exactly 0 is "flat".
 - **Read `meta`, not the arrays.** The per-minute arrays contain `null` rows (D05.SI at 09:40 SGT; USDSGD near the end), and volume entries can be 0.
 - **Key order varies:** `quote` lists its arrays in a different order for each symbol, and USDSGD's trading periods list `end` before `start`.
 

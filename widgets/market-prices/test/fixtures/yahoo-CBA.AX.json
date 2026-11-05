@@ -1,0 +1,143 @@
+{
+  "chart": {
+    "result": [
+      {
+        "meta": {
+          "currency": "AUD",
+          "symbol": "CBA.AX",
+          "exchangeName": "ASX",
+          "fullExchangeName": "ASX",
+          "instrumentType": "EQUITY",
+          "firstTradeDate": 686188800,
+          "regularMarketTime": 1793843648,
+          "hasPrePostMarketData": false,
+          "gmtoffset": 39600,
+          "timezone": "AEDT",
+          "exchangeTimezoneName": "Australia/Sydney",
+          "regularMarketPrice": 166.26,
+          "regularMarketChangePercent": 0,
+          "fulldayPrice": 166.26,
+          "fulldayChange": 0,
+          "fulldayChangePercent": 0,
+          "fiftyTwoWeekHigh": 185.59,
+          "fiftyTwoWeekLow": 146.98,
+          "regularMarketDayHigh": 167.6,
+          "regularMarketDayLow": 164.23,
+          "regularMarketVolume": 843689,
+          "longName": "Commonwealth Bank of Australia",
+          "shortName": "CWLTH BANK FPO [CBA]",
+          "chartPreviousClose": 166.26,
+          "previousClose": 166.26,
+          "scale": 3,
+          "priceHint": 2,
+          "currentTradingPeriod": {
+            "pre": {
+              "timezone": "AEDT",
+              "start": 1793822400,
+              "end": 1793833200,
+              "gmtoffset": 39600
+            },
+            "regular": {
+              "timezone": "AEDT",
+              "start": 1793833200,
+              "end": 1793855520,
+              "gmtoffset": 39600
+            },
+            "post": {
+              "timezone": "AEDT",
+              "start": 1793855520,
+              "end": 1793855520,
+              "gmtoffset": 39600
+            }
+          },
+          "tradingPeriods": [
+            [
+              {
+                "timezone": "AEDT",
+                "start": 1793833200,
+                "end": 1793855520,
+                "gmtoffset": 39600
+              }
+            ]
+          ],
+          "dataGranularity": "1m",
+          "range": "1d",
+          "validRanges": [
+            "1d",
+            "5d",
+            "1mo",
+            "3mo",
+            "6mo",
+            "1y",
+            "2y",
+            "5y",
+            "10y",
+            "ytd",
+            "max"
+          ]
+        },
+        "timestamp": [
+          1793833200,
+          1793833260,
+          1793833320,
+          1793843520,
+          1793843580,
+          1793843640,
+          1793843648
+        ],
+        "indicators": {
+          "quote": [
+            {
+              "volume": [
+                0,
+                27741,
+                24075,
+                null,
+                2643,
+                null,
+                0
+              ],
+              "low": [
+                165.6999969482422,
+                165.5399932861328,
+                165.2899932861328,
+                null,
+                166.1699981689453,
+                null,
+                166.25999450683594
+              ],
+              "close": [
+                165.89999389648438,
+                165.82000732421875,
+                165.67999267578125,
+                null,
+                166.19000244140625,
+                null,
+                166.25999450683594
+              ],
+              "open": [
+                166.5800018310547,
+                165.89999389648438,
+                165.8699951171875,
+                null,
+                166.1999969482422,
+                null,
+                166.25999450683594
+              ],
+              "high": [
+                167.25,
+                166.47000122070312,
+                165.99000549316406,
+                null,
+                166.1999969482422,
+                null,
+                166.25999450683594
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "error": null
+  }
+}
