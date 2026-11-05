@@ -275,6 +275,7 @@ describe('toCoinGeckoId', () => {
     assert.equal(toCoinGeckoId('sol'), 'solana');
     assert.equal(toCoinGeckoId('xrp'), 'ripple');
     assert.equal(toCoinGeckoId('doge'), 'dogecoin');
+    assert.equal(toCoinGeckoId('cro'), 'crypto-com-chain'); // Cronos
   });
 
   test('ignores case', () => {

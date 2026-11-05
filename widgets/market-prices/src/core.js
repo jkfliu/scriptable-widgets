@@ -133,7 +133,7 @@ const COINGECKO_IDS = new Map([
   ['ada', 'cardano'], ['doge', 'dogecoin'], ['trx', 'tron'], ['dot', 'polkadot'], ['ltc', 'litecoin'],
   ['link', 'chainlink'], ['avax', 'avalanche-2'], ['bch', 'bitcoin-cash'], ['xlm', 'stellar'],
   ['atom', 'cosmos'], ['uni', 'uniswap'], ['shib', 'shiba-inu'], ['ton', 'the-open-network'],
-  ['usdt', 'tether'], ['usdc', 'usd-coin'],
+  ['usdt', 'tether'], ['usdc', 'usd-coin'], ['cro', 'crypto-com-chain'],
 ]);
 
 function toCoinGeckoId(symbol) {

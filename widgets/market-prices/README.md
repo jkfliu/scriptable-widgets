@@ -7,11 +7,15 @@ Prices come from Yahoo Finance (FX, stocks, indices) and CoinGecko (crypto). No 
 ## Install on your phone
 
 1. Install the free [Scriptable](https://apps.apple.com/app/scriptable/id1405459188) app and open it once.
-2. Open [`dist/Market Prices.js`](https://github.com/jkfliu/scriptable-widgets/blob/main/dist/Market%20Prices.js) on GitHub, tap **Raw**, and copy all of it.
-3. In Scriptable, tap **+**, paste, then tap the title at the top and rename the script **Market Prices**.
-4. Tap the script to run it. A menu lets you preview the small and medium widgets.
+2. On the iPhone, open **[Market Prices.js](https://raw.githubusercontent.com/jkfliu/scriptable-widgets/main/dist/Market%20Prices.js)** in Safari.
+3. Tap **Share** › **Save to Files**, choose **iCloud Drive › Scriptable**, and tap **Save**.
+4. Open Scriptable: **Market Prices** is in the list. Tap it to run it; a menu lets you preview the small and medium widgets.
 
-To update later, repeat steps 2 and 3, pasting over the old script. Your widgets keep working because they refer to the script by name.
+This uses Scriptable's folder in iCloud Drive, so iCloud Drive needs to be on for Scriptable.
+
+**To update later**, download it the same way and choose **Replace** when Files asks. Your widgets, Parameters, saved prices and CoinGecko key all stay as they are.
+
+**Or copy and paste:** if the download doesn't work for you, open [`dist/Market Prices.js`](https://github.com/jkfliu/scriptable-widgets/blob/main/dist/Market%20Prices.js) on GitHub, tap **Raw**, and copy all of it. In Scriptable, tap **+**, paste, then tap the title at the top and rename the script **Market Prices**.
 
 ## Add the widget
 
@@ -63,7 +67,7 @@ fx:USDSGD,SGDJPY | stocks:D05.SI,^GSPC | crypto:btc,eth | cur:sgd
 | ASX stock | Code + `.AX` | `CBA.AX`, `BHP.AX` |
 | US stock | Ticker | `AAPL`, `BRK-B` |
 | Index | `^` + Yahoo code | `^STI`, `^AXJO` (ASX 200), `^GSPC` (S&P 500), `^DJI`, `^IXIC`, `^N225` |
-| Crypto | Symbol or CoinGecko ID | `btc`, `eth`, `sol`, `xrp`, `doge`, or an ID like `render-token` |
+| Crypto | Symbol or CoinGecko ID | `btc`, `eth`, `sol`, `xrp`, `doge`, `cro`, or an ID like `render-token` |
 
 Stock tickers are Yahoo Finance's. Search for a company on [finance.yahoo.com](https://finance.yahoo.com) to find its ticker.
 
