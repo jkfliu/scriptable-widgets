@@ -1,0 +1,7 @@
+{
+  "name": "Market Prices",
+  "output": "Market Prices.js",
+  "version": "0.1.0",
+  "shared": ["time", "storage"],
+  "icon": { "color": "deep-green", "glyph": "chart-line" }
+}

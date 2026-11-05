@@ -156,7 +156,9 @@ label(item) takes { type, symbol }; extra index names ^DJI Dow, ^IXIC Nasdaq, ^N
   - No currency symbols or tags.
 - Test that typical labels and prices fit within a fixed maximum character count for a one-third-width column.
 
-### Phase 8: Market Prices — Scriptable layer
+### Phase 8: Market Prices — Scriptable layer ✅ Done (needs checking on the phone)
+Request planning, quote collection, rows, cache (per-crypto-currency keys, 7-day expiry), layout, refresh time and help text are in core.js with tests. widget.js is the thin Scriptable layer. test/widget.test.js runs the built bundle against Scriptable stand-ins and the real fixtures. widget.json (0.1.0, no update checks) was added now so dist/Market Prices.js can be tried on the phone. Rows are 22 pt high; "closed" sits under the label in 7 pt; dimmed values use 50% opacity.
+
 - Read the parameter from args.widgetParameter and the size from config.widgetFamily.
 - Fetch all Yahoo symbols (with a normal browser User-Agent) and the single CoinGecko request at the same time.
   - An optional CoinGecko key is stored in Keychain and sent in the x-cg-demo-api-key header.

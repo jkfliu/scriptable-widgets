@@ -307,8 +307,135 @@ function formatPrice(value, type, symbol, currency) {
   return fixed(value, 2);
 }
 
+// --- Requests, rows and layout (used by widget.js) ---
+
+const YAHOO_CHART = 'https://query1.finance.yahoo.com/v8/finance/chart/';
+const COINGECKO_PRICE = 'https://api.coingecko.com/api/v3/simple/price';
+const REFRESH_MINUTES = 15;
+const CACHE_MAX_AGE_DAYS = 7;
+const ARROWS = { up: '▲', down: '▼', flat: '' };
+
+const yahooUrl = (symbol) => `${YAHOO_CHART}${encodeURIComponent(symbol)}`;
+const coinGeckoUrl = (ids, currency) =>
+  `${COINGECKO_PRICE}?ids=${ids.map(encodeURIComponent).join(',')}&vs_currencies=${String(currency).toLowerCase()}&include_24hr_change=true`;
+
+// Request headers for CoinGecko: the optional demo API key, only when one is set.
+function coinGeckoHeaders(key) {
+  return typeof key === 'string' && key.trim() ? { 'x-cg-demo-api-key': key.trim() } : {};
+}
+
+// Cache and quote key for an item. Crypto prices depend on the currency, so it is part of the key.
+const itemKey = (item, currency) =>
+  (item.type === 'crypto' ? `crypto:${item.symbol}:${currency}` : `${item.type}:${item.symbol}`);
+
+// What to fetch for the items: one Yahoo request per FX pair or stock, and one CoinGecko request
+// for all crypto (null if there is none). Duplicates are requested once.
+function planRequests(items, currency) {
+  const yahoo = [];
+  const keys = new Map();
+  for (const item of items) {
+    const key = itemKey(item, currency);
+    if (item.type === 'crypto') {
+      keys.set(key, toCoinGeckoId(item.symbol));
+    } else if (!yahoo.some((r) => r.key === key)) {
+      yahoo.push({ key, url: yahooUrl(toYahooSymbol(item.symbol, item.type)) });
+    }
+  }
+  const ids = [...new Set(keys.values())];
+  return { yahoo, coinGecko: ids.length ? { ids, url: coinGeckoUrl(ids, currency), keys } : null };
+}
+
+// Quotes by item key from the responses (URL to body text, or null if the request failed).
+function collectQuotes(plan, responses, now) {
+  const quotes = new Map();
+  const failed = unavailable('The request failed.');
+  for (const { key, url } of plan.yahoo) {
+    const body = responses.get(url);
+    quotes.set(key, body == null ? failed : parseYahooChart(body, now));
+  }
+  if (plan.coinGecko) {
+    const { ids, url, keys } = plan.coinGecko;
+    const body = responses.get(url);
+    const currency = [...keys.keys()][0].split(':').pop();
+    const coins = body == null ? new Map() : parseCoinGecko(body, ids, currency);
+    for (const [key, id] of keys) quotes.set(key, coins.get(id) ?? failed);
+  }
+  return quotes;
+}
+
+const usableQuote = (q) => q !== null && typeof q === 'object' && q.available === true && finite(q.price) !== null;
+
+// The cache without malformed entries or ones older than CACHE_MAX_AGE_DAYS.
+function cleanCache(cache, nowMs) {
+  const clean = {};
+  if (!cache || typeof cache !== 'object' || Array.isArray(cache)) return clean;
+  for (const [key, entry] of Object.entries(cache)) {
+    const at = finite(entry?.fetchedAt);
+    if (at !== null && usableQuote(entry) && nowMs - at <= CACHE_MAX_AGE_DAYS * 24 * 3600e3) clean[key] = entry;
+  }
+  return clean;
+}
+
+// Rows to draw, the updated cache, and when the newest value shown was fetched (null if none).
+// A row is { key, label, price, arrow, tone, dimmed, closed }. Fresh quotes are saved to the cache;
+// when a quote is unavailable, the saved value is shown dimmed, or — if there is none.
+function buildRows(items, quotes, cache, now, currency) {
+  const nowMs = toMs(now);
+  const next = cleanCache(cache, nowMs);
+  let updatedAt = null;
+  const rows = items.map((item) => {
+    const key = itemKey(item, currency);
+    const base = { key, label: label(item) };
+    const quote = quotes.get(key);
+    const fresh = usableQuote(quote);
+    if (fresh) next[key] = { ...quote, fetchedAt: nowMs };
+    const shown = fresh ? quote : next[key];
+    if (!shown) return { ...base, price: '—', arrow: '', tone: 'flat', dimmed: false, closed: false };
+    updatedAt = Math.max(updatedAt ?? -Infinity, fresh ? nowMs : shown.fetchedAt);
+    const tone = direction(shown);
+    return {
+      ...base,
+      price: formatPrice(shown.price, item.type, item.symbol, item.type === 'crypto' ? currency : shown.currency),
+      arrow: ARROWS[tone],
+      tone,
+      dimmed: !fresh,
+      closed: fresh && item.type === 'stocks' && shown.marketOpen === false,
+    };
+  });
+  return { rows, cache: next, updatedAt };
+}
+
+// Columns of { type, symbol } items: one column for small, one per group otherwise.
+function layoutFor(family, parsed) {
+  if (family === 'small') return { columns: [smallItems(parsed)] };
+  return { columns: columnsFor(parsed).map((c) => c.items.map((symbol) => ({ type: c.type, symbol }))) };
+}
+
+const refreshAfter = (now) => new Date(toMs(now) + REFRESH_MINUTES * 60e3);
+
+const HELP_TEXT = [
+  'Set the widget\'s Parameter to choose what it shows, e.g.',
+  'fx:USDSGD,SGDJPY | stocks:D05.SI,^GSPC | crypto:btc,eth | cur:sgd',
+  '',
+  'Groups are separated by |, and items by commas. Spaces and capitals don\'t matter. Up to 5 items per group.',
+  '',
+  'fx: currency pairs, e.g. USDSGD or USD/SGD.',
+  'stocks: Yahoo tickers. .SI for SGX (D05.SI), .AX for ASX (CBA.AX), ^ for indices (^STI, ^GSPC, ^AXJO).',
+  'crypto: symbols (btc, eth, sol) or CoinGecko IDs.',
+  'cur: the currency for crypto prices only, e.g. cur:sgd. Default usd.',
+  '',
+  'Medium widgets show one column per group; small widgets show the first 5 items.',
+  '',
+  'With no Parameter, medium shows:',
+  DEFAULTS.medium,
+  'and small shows:',
+  DEFAULTS.small,
+].join('\n');
+
 module.exports = {
   parseParameter, defaultParameter, resolveParameter, smallItems, columnsFor, toYahooSymbol, toCoinGeckoId,
   parseYahooChart, parseCoinGecko, direction,
   label, formatPrice, COLUMN_MAX_CHARS,
+  yahooUrl, coinGeckoUrl, coinGeckoHeaders, itemKey, planRequests, collectQuotes, buildRows,
+  layoutFor, refreshAfter, HELP_TEXT, CACHE_MAX_AGE_DAYS,
 };
