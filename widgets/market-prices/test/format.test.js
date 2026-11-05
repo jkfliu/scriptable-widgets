@@ -75,11 +75,16 @@ describe('formatPrice: FX', () => {
 });
 
 describe('formatPrice: stocks and indices', () => {
-  test('2 decimal places with thousands separators', () => {
+  test('under 1,000: 2 decimal places', () => {
     assert.equal(formatPrice(70.36, 'stocks', 'D05.SI', 'SGD'), '70.36');
     assert.equal(formatPrice(166.26, 'stocks', 'CBA.AX', 'AUD'), '166.26');
-    assert.equal(formatPrice(7688.62, 'stocks', '^GSPC', 'USD'), '7,688.62');
     assert.equal(formatPrice(5, 'stocks', 'X', 'USD'), '5.00');
+  });
+
+  test('from 1,000: whole numbers with thousands separators', () => {
+    assert.equal(formatPrice(7688.62, 'stocks', '^GSPC', 'USD'), '7,689');
+    assert.equal(formatPrice(47123.45, 'stocks', '^DJI', 'USD'), '47,123');
+    assert.equal(formatPrice(4512.33, 'stocks', '^STI', 'SGD'), '4,512');
   });
 
   test('0 decimal places for prices in JPY', () => {
@@ -87,10 +92,12 @@ describe('formatPrice: stocks and indices', () => {
     assert.equal(formatPrice(38412.17, 'stocks', '^N225', 'JPY'), '38,412');
   });
 
-  test('separators at the 999.99 / 1,000.00 boundary', () => {
+  test('the 1,000 boundary, including a price that rounds up to it', () => {
     assert.equal(formatPrice(999.99, 'stocks', 'X', 'USD'), '999.99');
-    assert.equal(formatPrice(999.995, 'stocks', 'X', 'USD'), '1,000.00');
-    assert.equal(formatPrice(1000, 'stocks', 'X', 'USD'), '1,000.00');
+    assert.equal(formatPrice(999.994, 'stocks', 'X', 'USD'), '999.99');
+    assert.equal(formatPrice(999.995, 'stocks', 'X', 'USD'), '1,000');
+    assert.equal(formatPrice(1000, 'stocks', 'X', 'USD'), '1,000');
+    assert.equal(formatPrice(-1234.5, 'stocks', 'X', 'USD'), '-1,235');
   });
 });
 

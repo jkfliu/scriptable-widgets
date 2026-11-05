@@ -118,7 +118,7 @@ describe('buildRows: fresh data', () => {
     assert.deepEqual(rows.map((r) => [r.label, r.price, r.arrow, r.tone]), [
       ['USD/SGD', '1.2770', '▼', 'down'],
       ['D05', '70.36', '▼', 'down'],
-      ['S&P 500', '7,688.62', '▲', 'up'],
+      ['S&P 500', '7,689', '▲', 'up'],
       ['BTC', '80,303', '▲', 'up'],
       ['ETH', '2,412', '▲', 'up'],
     ]);
@@ -158,7 +158,7 @@ describe('buildRows: failures and the cache', () => {
 
   test('when a fetch fails, the saved value is shown dimmed', () => {
     const { rows } = buildRows(ITEMS, offline, fresh.cache, later, 'usd');
-    assert.deepEqual(rows.map((r) => r.price), ['1.2770', '70.36', '7,688.62', '80,303', '2,412']);
+    assert.deepEqual(rows.map((r) => r.price), ['1.2770', '70.36', '7,689', '80,303', '2,412']);
     assert.ok(rows.every((r) => r.dimmed === true));
   });
 
@@ -288,7 +288,7 @@ describe('columnMetrics', () => {
     for (const l of ['S&P 500', 'ASX 200', 'USD/SGD', 'Nasdaq']) {
       assert.ok(width(l, m.fontSize) <= m.labelWidth, `${l}: ${width(l, m.fontSize)} > ${m.labelWidth}`);
     }
-    for (const p of ['7,688.62', '8,812.30', '4,512.33', '123.68', '1.2770', '102.5K', '80,303']) {
+    for (const p of ['7,689', '8,812', '47,123', '23,457', '123.68', '166.26', '1.2770', '102.5K', '80,303']) {
       const w = width(p, m.fontSize) + m.arrowWidth;
       assert.ok(w <= m.priceWidth, `${p}: ${w} > ${m.priceWidth}`);
     }

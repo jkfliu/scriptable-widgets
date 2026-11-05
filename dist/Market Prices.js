@@ -358,6 +358,7 @@ function formatCrypto(value) {
 }
 
 // The price text for a row, with no currency symbol or code. — when there is no number.
+// FX: 4 decimals (2 if quoted in JPY). Stocks and indices: 2 decimals under 1,000, else whole numbers.
 function formatPrice(value, type, symbol, currency) {
   if (finite(value) === null) return '—';
   if (type === 'crypto') return formatCrypto(value);
@@ -365,7 +366,10 @@ function formatPrice(value, type, symbol, currency) {
     const quote = typeof symbol === 'string' && /^[A-Z]{6}$/.test(symbol) ? symbol.slice(3) : currency;
     return fixed(value, quote === 'JPY' ? 2 : 4);
   }
-  if (type === 'stocks' && currency === 'JPY') return fixed(value, 0);
+  if (type === 'stocks') {
+    // Whole numbers for JPY prices and from 1,000 (including a price that rounds up to it).
+    if (currency === 'JPY' || Math.abs(roundTo(value, 2)) >= 1000) return fixed(value, 0);
+  }
   return fixed(value, 2);
 }
 

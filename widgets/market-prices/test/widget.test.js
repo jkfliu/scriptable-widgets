@@ -35,7 +35,7 @@ describe('medium widget with fixtures', () => {
   test('shows every item with its label and price', async () => {
     const { widget } = await run();
     const shown = words(widget);
-    for (const t of ['USD/SGD', '1.2770', 'SGD/JPY', '123.68', 'D05', '70.36', 'CBA', '166.26', 'S&P 500', '7,688.62',
+    for (const t of ['USD/SGD', '1.2770', 'SGD/JPY', '123.68', 'D05', '70.36', 'CBA', '166.26', 'S&P 500', '7,689',
       'BTC', '80,303', 'ETH', '2,412', 'SOL', '95.29']) {
       assert.ok(shown.includes(t), `missing ${t}; shown: ${shown.join(' | ')}`);
     }
@@ -108,7 +108,7 @@ describe('medium widget with fixtures', () => {
     const rowTexts = texts(widget).filter((t) => t !== footer);
     assert.ok(rowTexts.every((t) => t.minimumScaleFactor === undefined || t.minimumScaleFactor === 1));
     const labels = ['USD/SGD', 'D05', 'S&P 500', 'BTC'].map((l) => texts(widget).find((t) => t.text === l));
-    const prices = ['1.2770', '70.36', '7,688.62', '80,303'].map((p) => priceText(widget, p));
+    const prices = ['1.2770', '70.36', '7,689', '80,303'].map((p) => priceText(widget, p));
     assert.equal(new Set(labels.map((t) => t.font.size)).size, 1);
     assert.equal(new Set(prices.map((t) => t.font.size)).size, 1);
     assert.equal(labels[0].font.size, 10);
@@ -129,7 +129,7 @@ describe('medium widget with fixtures', () => {
   test('colours: price and arrow share the tone colour; dynamic for light and dark', async () => {
     const { widget } = await run();
     const d05 = priceText(widget, '70.36');
-    const gspc = priceText(widget, '7,688.62');
+    const gspc = priceText(widget, '7,689');
     assert.ok(d05.textColor.light && d05.textColor.dark, 'dynamic colour');
     assert.notDeepEqual(d05.textColor, gspc.textColor);
   });
@@ -174,7 +174,7 @@ describe('failures and the cache', () => {
     const limited = async (url) => (url === yahooUrl('D05.SI') ? { status: 429, body: 'Too Many Requests' } : fixtures(url));
     const { widget } = await run({ files, responder: limited });
     assert.ok(priceText(widget, '70.36').textOpacity < 1);
-    assert.equal(priceText(widget, '7,688.62').textOpacity, 1);
+    assert.equal(priceText(widget, '7,689').textOpacity, 1);
   });
 
   test('an unknown symbol shows —', async () => {

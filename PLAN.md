@@ -151,7 +151,7 @@ label(item) takes { type, symbol }; extra index names ^DJI Dow, ^IXIC Nasdaq, ^N
   - crypto: uppercase symbol, e.g. BTC
 - formatPrice(value, type, symbol, currency):
   - FX: 4 decimal places, or 2 for pairs quoted in JPY
-  - stocks and indices: 2 decimal places with thousands separators, or 0 for prices in JPY
+  - stocks and indices: 2 decimal places under 1,000, whole numbers with thousands separators from 1,000, and 0 decimals for prices in JPY
   - crypto: 2 significant decimals for prices under 1, 3 decimals under 10, 2 decimals under 100, whole numbers up to 99,999, and K or M abbreviations above that (e.g. 132.5K)
   - No currency symbols or tags.
 - Test that typical labels and prices fit within a fixed maximum character count for a one-third-width column.
