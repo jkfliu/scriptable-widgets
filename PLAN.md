@@ -102,7 +102,7 @@ Write a small Node script that downloads and saves real responses to widgets/mar
 Document the response shapes in the fixtures README. In particular, note which Yahoo fields give the current price, previous close, last trade time, trading hours and currency. Stop for review.
 
 ### Phase 5: Market Prices — parameters (tests first) ✅ Done
-Also added resolveParameter(param, family), which applies the default fallback and keeps a valid cur:. FX and stocks are stored uppercase, crypto and cur lowercase; malformed items are dropped and recorded.
+Also added resolveParameter(param, family), which applies the default fallback and keeps a valid cur:. FX pairs may be written USDSGD or USD/SGD. Input is case-insensitive; FX and stocks are stored uppercase, crypto and cur lowercase; malformed items are dropped and recorded.
 
 
 Parameter format:

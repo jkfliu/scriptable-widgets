@@ -1,7 +1,7 @@
 // Pure logic for the Market Prices widget. No Scriptable APIs here: everything is tested under Node.
 
 // --- Parameter ---
-// Format: fx:USDSGD,SGDJPY | stocks:D05.SI,^GSPC | crypto:btc,eth | cur:usd
+// Format: fx:USDSGD,SGD/JPY | stocks:D05.SI,^GSPC | crypto:btc,eth | cur:usd
 // Groups are separated by |, items by commas. Spaces and letter case are ignored.
 
 const MAX_ITEMS = 5;
@@ -13,7 +13,8 @@ const DEFAULTS = {
 
 // How each group's items are written and checked. Items are stored in this case.
 const GROUPS = {
-  fx: { normalise: (s) => s.toUpperCase(), valid: /^[A-Z]{6}$/ }, // e.g. USDSGD
+  // e.g. USDSGD, or USD/SGD, which is stored as USDSGD
+  fx: { normalise: (s) => s.toUpperCase().replace(/^([A-Z]{3})\/([A-Z]{3})$/, '$1$2'), valid: /^[A-Z]{6}$/ },
   stocks: { normalise: (s) => s.toUpperCase(), valid: /^\^?[A-Z0-9][A-Z0-9.-]{0,19}$/ }, // D05.SI, ^GSPC, BRK-B
   crypto: { normalise: (s) => s.toLowerCase(), valid: /^[a-z0-9][a-z0-9-]{0,49}$/ }, // btc, or a CoinGecko ID
 };

@@ -46,6 +46,25 @@ describe('parseParameter', () => {
     assert.equal(parsed.currency, 'sgd');
   });
 
+  test('FX pairs can be written with a slash, e.g. USD/SGD, and are stored as USDSGD', () => {
+    const parsed = parseParameter('fx:USD/SGD, sgd / jpy,SGDAUD');
+    assert.deepEqual(itemsOf(parsed), { fx: ['USDSGD', 'SGDJPY', 'SGDAUD'] });
+    assert.deepEqual(parsed.errors, []);
+  });
+
+  test('USD/SGD and USDSGD count as the same pair', () => {
+    const parsed = parseParameter('fx:USD/SGD,USDSGD,usd/sgd');
+    assert.deepEqual(itemsOf(parsed), { fx: ['USDSGD'] });
+    assert.deepEqual(parsed.errors, []);
+  });
+
+  test('crypto symbols and the currency can be uppercase', () => {
+    const parsed = parseParameter('crypto:BTC,ETH,SOL | cur:SGD');
+    assert.deepEqual(itemsOf(parsed), { crypto: ['btc', 'eth', 'sol'] });
+    assert.equal(parsed.currency, 'sgd');
+    assert.deepEqual(parsed.errors, []);
+  });
+
   test('spaces inside an item are ignored too', () => {
     assert.deepEqual(itemsOf(parseParameter('fx:USD SGD | stocks:D05 .SI')), { fx: ['USDSGD'], stocks: ['D05.SI'] });
   });
@@ -113,10 +132,10 @@ describe('parseParameter', () => {
   });
 
   test('drops malformed items and records them, keeping the rest of the group', () => {
-    const parsed = parseParameter('fx:USDSGD,USDSG,USD/SGD,USDSGD1 | stocks:D05.SI,D05=X,^ | crypto:btc,bt$c');
+    const parsed = parseParameter('fx:USDSGD,USDSG,USD/SG,US/DSGD,USD//SGD,USDSGD1 | stocks:D05.SI,D05=X,^ | crypto:btc,bt$c');
     assert.deepEqual(itemsOf(parsed), { fx: ['USDSGD'], stocks: ['D05.SI'], crypto: ['btc'] });
-    assert.equal(parsed.errors.length, 6);
-    for (const bad of ['USDSG', 'USD/SGD', 'USDSGD1', 'D05=X', '^', 'bt$c']) {
+    assert.equal(parsed.errors.length, 8);
+    for (const bad of ['USDSG', 'USD/SG', 'US/DSGD', 'USD//SGD', 'USDSGD1', 'D05=X', '^', 'bt$c']) {
       assert.ok(parsed.errors.some((e) => e.includes(bad)), `no error for ${bad}`);
     }
   });
