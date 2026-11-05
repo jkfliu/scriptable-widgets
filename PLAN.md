@@ -87,8 +87,8 @@ Also:
 - Point SG Haze's update URL at this repo and bump its version.
 - Stop for review.
 
-### Phase 4: Market Prices — fixtures ⏳ Partly done
-scripts/fetch-fixtures.js is written and tested. CoinGecko fixtures are captured (an unknown id returns HTTP 200 with {}). Yahoo returned HTTP 429 for every request from the cloud session, so the Yahoo fixtures and the fixtures README still need a run from a Mac.
+### Phase 4: Market Prices — fixtures ✅ Done
+scripts/fetch-fixtures.js is written and tested; it captured the CoinGecko fixtures. Yahoo returned HTTP 429 to the cloud session, so the Yahoo fixtures (D05.SI open, ^GSPC closed, USDSGD=X, an invalid symbol) were copied from Safari on the iPhone; two have their per-minute arrays trimmed. Shapes are documented in widgets/market-prices/test/fixtures/README.md. CBA.AX and SGDJPY=X not captured yet.
 
 Write a small Node script that downloads and saves real responses to widgets/market-prices/test/fixtures/:
 - Yahoo, from https://query1.finance.yahoo.com/v8/finance/chart/{symbol}:
