@@ -1,0 +1,143 @@
+{
+  "chart": {
+    "result": [
+      {
+        "meta": {
+          "currency": "JPY",
+          "symbol": "SGDJPY=X",
+          "exchangeName": "CCY",
+          "fullExchangeName": "CCY",
+          "instrumentType": "CURRENCY",
+          "firstTradeDate": 1070236800,
+          "regularMarketTime": 1793844887,
+          "hasPrePostMarketData": false,
+          "gmtoffset": 0,
+          "timezone": "GMT",
+          "exchangeTimezoneName": "Europe/London",
+          "regularMarketPrice": 123.682,
+          "regularMarketChangePercent": -0.1236,
+          "fulldayPrice": 123.682,
+          "fulldayChange": -0.153,
+          "fulldayChangePercent": -0.1236,
+          "fiftyTwoWeekHigh": 126.932,
+          "fiftyTwoWeekLow": 116.93,
+          "regularMarketDayHigh": 123.899,
+          "regularMarketDayLow": 123.582,
+          "regularMarketVolume": 0,
+          "longName": "SGD/JPY",
+          "shortName": "SGD/JPY",
+          "chartPreviousClose": 123.835,
+          "previousClose": 123.835,
+          "scale": 4,
+          "priceHint": 4,
+          "currentTradingPeriod": {
+            "pre": {
+              "timezone": "GMT",
+              "start": 1793836800,
+              "end": 1793836800,
+              "gmtoffset": 0
+            },
+            "regular": {
+              "timezone": "GMT",
+              "start": 1793836800,
+              "end": 1793923140,
+              "gmtoffset": 0
+            },
+            "post": {
+              "timezone": "GMT",
+              "start": 1793923140,
+              "end": 1793923140,
+              "gmtoffset": 0
+            }
+          },
+          "tradingPeriods": [
+            [
+              {
+                "timezone": "GMT",
+                "start": 1793836800,
+                "end": 1793923140,
+                "gmtoffset": 0
+              }
+            ]
+          ],
+          "dataGranularity": "1m",
+          "range": "1d",
+          "validRanges": [
+            "1d",
+            "5d",
+            "1mo",
+            "3mo",
+            "6mo",
+            "1y",
+            "2y",
+            "5y",
+            "10y",
+            "ytd",
+            "max"
+          ]
+        },
+        "timestamp": [
+          1793836800,
+          1793836860,
+          1793836920,
+          1793844720,
+          1793844780,
+          1793844840,
+          1793844887
+        ],
+        "indicators": {
+          "quote": [
+            {
+              "open": [
+                123.80599975585938,
+                123.8499984741211,
+                123.8550033569336,
+                null,
+                123.68499755859375,
+                null,
+                123.68199920654297
+              ],
+              "low": [
+                123.80500030517578,
+                123.84300231933594,
+                123.81099700927734,
+                null,
+                123.67900085449219,
+                null,
+                123.68199920654297
+              ],
+              "close": [
+                123.84500122070312,
+                123.85700225830078,
+                123.8290023803711,
+                null,
+                123.68099975585938,
+                null,
+                123.68199920654297
+              ],
+              "high": [
+                123.8479995727539,
+                123.89800262451172,
+                123.86199951171875,
+                null,
+                123.68499755859375,
+                null,
+                123.68199920654297
+              ],
+              "volume": [
+                0,
+                0,
+                0,
+                null,
+                0,
+                null,
+                0
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "error": null
+  }
+}

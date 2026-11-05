@@ -87,7 +87,9 @@ Also:
 - Point SG Haze's update URL at this repo and bump its version.
 - Stop for review.
 
-### Phase 4: Market Prices — fixtures
+### Phase 4: Market Prices — fixtures ✅ Done
+scripts/fetch-fixtures.js is written and tested; it captured the CoinGecko fixtures. Yahoo returned HTTP 429 to the cloud session, so the Yahoo fixtures (D05.SI open, ^GSPC closed, USDSGD=X, an invalid symbol) were copied from Safari on the iPhone; two have their per-minute arrays trimmed. Shapes are documented in widgets/market-prices/test/fixtures/README.md. CBA.AX and SGDJPY=X not captured yet.
+
 Write a small Node script that downloads and saves real responses to widgets/market-prices/test/fixtures/:
 - Yahoo, from https://query1.finance.yahoo.com/v8/finance/chart/{symbol}:
   - stocks: D05.SI, CBA.AX, ^GSPC
@@ -99,7 +101,9 @@ Write a small Node script that downloads and saves real responses to widgets/mar
 
 Document the response shapes in the fixtures README. In particular, note which Yahoo fields give the current price, previous close, last trade time, trading hours and currency. Stop for review.
 
-### Phase 5: Market Prices — parameters (tests first)
+### Phase 5: Market Prices — parameters (tests first) ✅ Done
+Also added resolveParameter(param, family), which applies the default fallback and keeps a valid cur:. FX pairs may be written USDSGD or USD/SGD. Input is case-insensitive; FX and stocks are stored uppercase, crypto and cur lowercase; malformed items are dropped and recorded.
+
 
 Parameter format:
 ```
@@ -129,13 +133,17 @@ Tests:
 - small with fewer than 5 items in total
 - a parameter with no valid items falls back to the default
 
-### Phase 6: Market Prices — responses (tests first)
+### Phase 6: Market Prices — responses (tests first) ✅ Done
+parseYahooChart(json, now) also takes now, for marketOpen: now within currentTradingPeriod.regular [start, end), or null if unknown. Unavailable items are { available: false, reason }. Both parsers accept JSON text or parsed JSON; parseCoinGecko returns a Map. direction uses change24h when the item has it, else price vs previous close.
+
 - parseYahooChart(json) returns { price, previousClose, time, marketOpen, currency }.
 - parseCoinGecko(json, ids, currency) returns a map of ID to { price, change24h }.
 - direction(item) returns up, down or flat, using the previous close for FX and stocks and the 24-hour change for crypto.
 - Missing fields, nulls and error responses should produce an "unavailable" item rather than a crash.
 
-### Phase 7: Market Prices — labels and formatting (tests first)
+### Phase 7: Market Prices — labels and formatting (tests first) ✅ Done
+label(item) takes { type, symbol }; extra index names ^DJI Dow, ^IXIC Nasdaq, ^N225 Nikkei (^HSI stays HSI to fit). formatPrice rounds half away from zero with US-style separators whatever the phone's region; FX gets separators too; a crypto value that rounds up to 1 or 100,000 uses the next rule; B after M. COLUMN_MAX_CHARS = 18 (label, space, price, arrow), a first estimate to check on the phone in Phase 8.
+
 - label(item):
   - FX: USDSGD becomes USD/SGD
   - stocks: drop the exchange suffix, e.g. D05.SI becomes D05
@@ -143,12 +151,14 @@ Tests:
   - crypto: uppercase symbol, e.g. BTC
 - formatPrice(value, type, symbol, currency):
   - FX: 4 decimal places, or 2 for pairs quoted in JPY
-  - stocks and indices: 2 decimal places with thousands separators, or 0 for prices in JPY
-  - crypto: 2 significant decimals for prices under 1, whole numbers up to 99,999, and K or M abbreviations above that (e.g. 132.5K)
+  - stocks and indices: 2 decimal places under 1,000, whole numbers with thousands separators from 1,000, and 0 decimals for prices in JPY
+  - crypto: 2 significant decimals for prices under 1, 3 decimals under 10, 2 decimals under 100, whole numbers up to 99,999, and K or M abbreviations above that (e.g. 132.5K)
   - No currency symbols or tags.
 - Test that typical labels and prices fit within a fixed maximum character count for a one-third-width column.
 
-### Phase 8: Market Prices — Scriptable layer
+### Phase 8: Market Prices — Scriptable layer ✅ Done (needs checking on the phone)
+Request planning, quote collection, rows, cache (per-crypto-currency keys, 7-day expiry), layout, refresh time and help text are in core.js with tests. widget.js is the thin Scriptable layer. test/widget.test.js runs the built bundle against Scriptable stand-ins and the real fixtures. widget.json (0.1.0, no update checks) was added now so dist/Market Prices.js can be tried on the phone. Rows are 22 pt high; "closed" sits under the label in 7 pt; dimmed values use 50% opacity.
+
 - Read the parameter from args.widgetParameter and the size from config.widgetFamily.
 - Fetch all Yahoo symbols (with a normal browser User-Agent) and the single CoinGecko request at the same time.
   - An optional CoinGecko key is stored in Keychain and sent in the x-cg-demo-api-key header.
@@ -173,7 +183,9 @@ Tests:
   - set or clear the CoinGecko key
   - a help screen explaining the parameter format
 
-### Phase 9: Market Prices — release
+### Phase 9: Market Prices — release ✅ Done
+scripts/release.sh <widget> <version> "<notes>" works for any widget (also replacing SG Haze's old release script); test/release.test.js runs it on a copy of the repo, with RELEASE_TEST_CMD standing in for npm test. Market Prices released as 1.0.0 with version.json, CHANGELOG.md and its own README; the root README lists both widgets.
+
 - Add widget.json, version.json and CHANGELOG.md.
 - Add a README section covering:
   - adding the widget, with small and medium examples
