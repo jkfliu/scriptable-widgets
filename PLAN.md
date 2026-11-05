@@ -54,7 +54,9 @@ Imported from jkfliu/sg-haze-widget with git filter-repo (full history kept). 15
 - Check: the built SG Haze.js matches the old repo's build, apart from paths.
 - Stop for review.
 
-### Phase 2: Multi-widget build (tests first)
+### Phase 2: Multi-widget build (tests first) ✅ Done
+widget.json also takes `icon` (Scriptable header) and an optional `updateRepo`. check-secrets.js moved to the root scripts/. SG Haze's root build is byte-identical to its old build; its own build/release scripts stay until Phase 3.
+
 - Each widget gets a widget.json: { "name", "output", "version", "shared": [...] }.
 - scripts/build.js:
   - node scripts/build.js sg-haze builds one widget; with no argument it builds all of them.

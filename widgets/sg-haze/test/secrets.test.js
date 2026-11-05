@@ -1,6 +1,6 @@
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
-const { findSecrets } = require('../scripts/check-secrets.js');
+const { findSecrets } = require('../../../scripts/check-secrets.js');
 const { buildBundle } = require('../scripts/build.js');
 
 describe('findSecrets catches planted secrets', () => {

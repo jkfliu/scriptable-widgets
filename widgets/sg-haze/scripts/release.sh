@@ -39,7 +39,7 @@ fs.writeFileSync("package.json", JSON.stringify(pkg, null, 2) + "\n");
 ' "$VERSION"
 
 node scripts/build.js
-node scripts/check-secrets.js "dist/SG Haze.js"
+node ../../scripts/check-secrets.js "dist/SG Haze.js"
 mkdir -p release
 cp "dist/SG Haze.js" "release/SG Haze.js"
 

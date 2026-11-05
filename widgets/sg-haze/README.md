@@ -117,7 +117,7 @@ scripts/build.js     bundles core + widget into one script for Scriptable
 scripts/deploy.sh    builds and copies the bundle to iCloud
 scripts/preview.js   renders the widget as HTML on the Mac
 scripts/release.sh   prepares a release (see the table above)
-scripts/check-secrets.js   scans the bundle for keys and personal data
+../../scripts/check-secrets.js   scans the bundle for keys and personal data
 scripts/fetch-fixtures.js  captures real API responses
 release/SG Haze.js   the published script, fetched by the updater and linked for friends
 version.json         { version, notes } of the latest release, read by the update check
