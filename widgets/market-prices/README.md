@@ -15,7 +15,7 @@ This uses Scriptable's folder in iCloud Drive, so iCloud Drive needs to be on fo
 
 **To update later**, download it the same way and choose **Replace** when Files asks. Your widgets, Parameters, saved prices and CoinGecko key all stay as they are.
 
-**Is there a new version?** The widget doesn't check for updates by itself. To see which version you have, run the script in Scriptable: the menu shows it at the top. The latest version and what changed are in [CHANGELOG.md](CHANGELOG.md).
+**Is there a new version?** From 1.1.0, the widget tells you (see [Updates](#updates)). To see which version you have, run the script in Scriptable: the menu shows it at the top. What changed in each version is in [CHANGELOG.md](CHANGELOG.md).
 
 **Or copy and paste:** if the download doesn't work for you, open [`dist/Market Prices.js`](https://github.com/jkfliu/scriptable-widgets/blob/main/dist/Market%20Prices.js) on GitHub, tap **Raw**, and copy all of it. In Scriptable, tap **+**, paste, then tap the title at the top and rename the script **Market Prices**.
 
@@ -84,7 +84,21 @@ Stock tickers are Yahoo Finance's. Search for a company on [finance.yahoo.com](h
 - **closed** under a stock's label when its market is closed. The price is the last close.
 - **Dimmed** prices are the last ones saved, shown when a fetch fails. **—** means no price yet.
 - **Updated 3:15pm** at the bottom (Singapore time). The widget asks to refresh about every 15 minutes; iOS decides exactly when.
+- **↑ update** at the bottom when a newer version is available (see [Updates](#updates)).
 - Tapping the widget opens Yahoo Finance.
+
+## Updates
+
+From version 1.1.0, update checks are **on** from the start:
+
+- Once a day, the widget reads a small version file from [github.com/jkfliu/scriptable-widgets](https://github.com/jkfliu/scriptable-widgets). If there's a newer version, the widget shows **↑ update** at the bottom.
+- Nothing installs by itself. To update, open Market Prices in Scriptable and choose **Install update**. You'll see the release notes first.
+- **Installing means running code downloaded from that GitHub repo on your phone.** Only install updates if you trust it. The script checks that the download looks like a newer Market Prices script before using it.
+- The current version is kept as **Market Prices (previous)**, so you can go back to it. If the install fails, your current script isn't changed.
+
+If you'd rather the widget never contacted GitHub, open Scriptable, tap **Market Prices**, and choose **Turn off update checks**. You can turn them back on from the same menu.
+
+Versions before 1.1.0 don't check for updates: download the script again once (see [Install on your phone](#install-on-your-phone)) to get 1.1.0.
 
 ## CoinGecko API key (optional)
 

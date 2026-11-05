@@ -1,6 +1,7 @@
 // Pure logic for the Market Prices widget. No Scriptable APIs here: everything is tested under Node.
-// The build strips the require below; shared/time.js comes before this file in the bundle.
+// The build strips the requires below; the shared modules come before this file in the bundle.
 const { toMs } = require('../../../shared/time.js');
+const { compareVersions, parseManifest, shouldCheckForUpdate } = require('../../../shared/update.js');
 
 // --- Parameter ---
 // Format: fx:USDSGD,SGD/JPY | stocks:D05.SI,^GSPC | crypto:btc,eth | cur:usd
@@ -464,7 +465,28 @@ const HELP_TEXT = [
   DEFAULTS.small,
 ].join('\n');
 
+// --- Update checks ---
+
+// The saved settings file, with defaults: update checks are on unless turned off.
+// { updateChecks, lastChecked (epoch ms or null), latest ({ version, notes } or null) }
+function readSettings(raw) {
+  const obj = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  return {
+    updateChecks: obj.updateChecks !== false,
+    lastChecked: finite(obj.lastChecked),
+    latest: obj.latest ? parseManifest(JSON.stringify(obj.latest)) : null,
+  };
+}
+
+// Whether to fetch version.json now: checks on, and at most once a day.
+const updateDue = (settings, now) => settings.updateChecks && shouldCheckForUpdate(settings.lastChecked, now);
+
+// Whether the latest known release is newer than the installed version (never for a dev build).
+const updateAvailable = (settings, version) =>
+  settings.updateChecks && compareVersions(settings.latest?.version, version) === 1;
+
 module.exports = {
+  readSettings, updateDue, updateAvailable,
   parseParameter, defaultParameter, resolveParameter, smallItems, columnsFor, toYahooSymbol, toCoinGeckoId,
   parseYahooChart, parseCoinGecko, direction,
   label, formatPrice, COLUMN_MAX_CHARS,

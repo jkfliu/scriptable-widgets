@@ -1,5 +1,5 @@
 #!/bin/sh
-# Releases one widget: checks the version is newer than its last release, runs the tests, sets
+# Releases one widget: checks the version is newer than its last release, builds it, runs the tests, sets
 # the version in widget.json, builds the widget into dist/, scans the bundle for secrets, and writes
 # the widget's version.json, which the update checker reads from GitHub.
 # Usage: sh scripts/release.sh <widget> <version> "<release notes>"
@@ -40,6 +40,8 @@ if (last && compareVersions(next, last) !== 1) {
 }
 ' "$DIR" "$VERSION"
 
+# Build first, so the test that compares dist/ with a fresh build sees the current sources.
+node scripts/build.js "$WIDGET"
 sh -c "${RELEASE_TEST_CMD:-npm test}"
 
 node -e '
