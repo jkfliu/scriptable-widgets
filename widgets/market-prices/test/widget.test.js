@@ -118,7 +118,7 @@ describe('medium widget with fixtures', () => {
     const prices = ['1.2770', '70.36', '7,689', '80,303'].map((p) => priceText(widget, p));
     assert.equal(new Set(labels.map((t) => t.font.size)).size, 1);
     assert.equal(new Set(prices.map((t) => t.font.size)).size, 1);
-    assert.equal(labels[0].font.size, 10);
+    assert.equal(labels[0].font.size, 10.5);
   });
 
   test('labels and prices sit in fixed-width slots, prices aligned right', async () => {

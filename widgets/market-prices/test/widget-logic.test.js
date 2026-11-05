@@ -252,8 +252,8 @@ describe('HELP_TEXT', () => {
 });
 
 describe('columnMetrics', () => {
-  test('one font size per layout: 10 pt with three columns, 11 pt otherwise', () => {
-    assert.equal(columnMetrics('medium', 3).fontSize, 10);
+  test('one font size per layout: 10.5 pt with three columns, 11 pt otherwise', () => {
+    assert.equal(columnMetrics('medium', 3).fontSize, 10.5);
     assert.equal(columnMetrics('medium', 2).fontSize, 11);
     assert.equal(columnMetrics('medium', 1).fontSize, 11);
     assert.equal(columnMetrics('small', 1).fontSize, 11);
@@ -286,7 +286,7 @@ describe('columnMetrics', () => {
     const width = (s, size) => [...s].reduce((sum, ch) => sum + size * (
       /[0-9]/.test(ch) ? em.digit : /[.,\s]/.test(ch) ? em.narrow : /[A-Z&]/.test(ch) ? em.upper : em.other), 0);
     const m = columnMetrics('medium', 3);
-    for (const l of ['S&P 500', 'ASX 200', 'USD/SGD', 'Nasdaq']) {
+    for (const l of ['S&P 500', 'ASX 200', 'USD/SGD', 'SGD/AUD', 'SGD/JPY', 'Nasdaq']) {
       assert.ok(width(l, m.fontSize) <= m.labelWidth, `${l}: ${width(l, m.fontSize)} > ${m.labelWidth}`);
     }
     for (const p of ['7,689', '8,812', '47,123', '23,457', '123.68', '166.26', '1.2770', '102.5K', '80,303']) {

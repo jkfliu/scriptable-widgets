@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.1 (2026-11-05)
+
+- Slightly larger text in the three-column medium widget: 10.5 pt instead of 10 pt. The label column is a little wider so names like USD/SGD still fit.
+
 ## 1.1.0 (2026-11-05)
 
 - Update checks, on by default: once a day the widget reads `widgets/market-prices/version.json` from github.com/jkfliu/scriptable-widgets, and shows **↑ update** when there's a newer version. Install it from the menu in Scriptable, after seeing the release notes. The current script is kept as "Market Prices (previous)". Nothing installs by itself.
