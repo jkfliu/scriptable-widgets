@@ -559,15 +559,15 @@ const refreshAfter = (now) => new Date(toMs(now) + REFRESH_MINUTES * 60e3);
 const CONTENT_WIDTH = { small: 134, medium: 314 };
 const DIVIDER_GAP = 4; // space either side of a divider
 const DIVIDER_WIDTH = 1;
-const LABEL_SHARE = 0.48; // of a column, for the label; the rest is for the price and arrow
+const LABEL_SHARE = 0.51; // of a column, for the label; the rest is for the price and arrow
 
 // Fixed sizes for a layout, so every label and price in a widget uses one font size and never
-// shrinks: 10 pt with three columns, 11 pt otherwise. Columns, gaps and dividers fill the width.
+// shrinks: 10.5 pt with three columns, 11 pt otherwise. Columns, gaps and dividers fill the width.
 function columnMetrics(family, columnCount) {
   const n = Math.max(1, columnCount | 0);
   const contentWidth = family === 'small' ? CONTENT_WIDTH.small : CONTENT_WIDTH.medium;
   const columnWidth = (contentWidth - (n - 1) * (2 * DIVIDER_GAP + DIVIDER_WIDTH)) / n;
-  const fontSize = n >= 3 ? 10 : 11;
+  const fontSize = n >= 3 ? 10.5 : 11;
   const arrowFontSize = fontSize - 3;
   const labelWidth = Math.round(columnWidth * LABEL_SHARE);
   return {
@@ -627,7 +627,7 @@ const updateAvailable = (settings, version) =>
 // The build strips the requires below.
 
 // All set by scripts/build.js from widget.json; the update source is fixed in the published script.
-const VERSION = '1.1.0';
+const VERSION = '1.1.1';
 const UPDATE_REPO = 'jkfliu/scriptable-widgets';
 const UPDATE_WIDGET = 'market-prices';
 const UPDATE_SCRIPT = 'Market Prices.js';
