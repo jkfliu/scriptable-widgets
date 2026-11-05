@@ -2,7 +2,143 @@
 // These must be at the very top of the file. Do not edit.
 // icon-color: blue; icon-glyph: smog;
 
+// Time helpers shared by widgets. Pure: callers pass `now` in, nothing reads the clock.
+
+const HOUR = 3600e3;
+const DAY = 24 * HOUR;
+const SGT_OFFSET = 8 * HOUR; // Singapore is UTC+8 with no daylight saving
+
+const toMs = (t) => (t instanceof Date ? t.getTime() : t);
+
+// True if latestTime is more than maxAgeMinutes before now. A missing or invalid time, or a
+// missing or invalid limit, counts as stale. A time in the future is not stale.
+function isStale(latestTime, now, maxAgeMinutes) {
+  const time = toMs(latestTime);
+  if (!Number.isFinite(time)) return true;
+  if (typeof maxAgeMinutes !== 'number' || !Number.isFinite(maxAgeMinutes) || maxAgeMinutes < 0) return true;
+  return toMs(now) - time > maxAgeMinutes * 60e3;
+}
+
+// Singapore wall-clock time as "3:00pm", or null for a missing or invalid time.
+function formatSgtTime(time) {
+  const ms = toMs(time);
+  if (!Number.isFinite(ms)) return null;
+  const d = new Date(ms + SGT_OFFSET);
+  const h = d.getUTCHours();
+  const mm = String(d.getUTCMinutes()).padStart(2, '0');
+  return `${h % 12 || 12}:${mm}${h < 12 ? 'am' : 'pm'}`;
+}
+
+// "Updated 3:00pm", or '' for a missing or invalid time.
+function formatUpdated(time) {
+  const t = formatSgtTime(time);
+  return t ? `Updated ${t}` : '';
+}
+
+// Update checker shared by widgets: versions, the version.json manifest, and where to fetch updates.
+// Each widget has its own manifest at widgets/<folder>/version.json and its script at dist/<output>
+// on the release branch of this repo.
+
+
+const VERSION_PATTERN = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
+const REPO_PATTERN = /^[A-Za-z0-9-]+\/[A-Za-z0-9._-]+$/;
+const WIDGET_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
+const SCRIPT_PATTERN = /^[^/\\]+\.js$/;
+const UPDATE_CHECK_EVERY = DAY;
+const SCRIPTABLE_HEADER = '// Variables used by Scriptable.';
+const RELEASE_BRANCH = 'main';
+
+const parseVersion = (v) => (typeof v === 'string' && v.match(VERSION_PATTERN)?.slice(1).map(Number)) || null;
+const isVersion = (v) => parseVersion(v) !== null;
+
+// The line scripts/build.js writes into the bundle and isPlausibleUpdate looks for.
+const versionLine = (version) => `const VERSION = '${version}';`;
+
+// 1 if a is newer, -1 if older, 0 if equal; null if either isn't a plain x.y.z version.
+function compareVersions(a, b) {
+  const [pa, pb] = [parseVersion(a), parseVersion(b)];
+  if (!pa || !pb) return null;
+  for (let i = 0; i < 3; i++) {
+    if (pa[i] !== pb[i]) return pa[i] > pb[i] ? 1 : -1;
+  }
+  return 0;
+}
+
+// version.json text to { version, notes }; null if it isn't valid.
+function parseManifest(text) {
+  let json;
+  try {
+    json = JSON.parse(text);
+  } catch (e) {
+    return null;
+  }
+  if (!json || typeof json !== 'object' || !isVersion(json.version)) return null;
+  return { version: json.version, notes: typeof json.notes === 'string' ? json.notes : '' };
+}
+
+// At most one check a day. A last check in the future means the clock changed, so check again.
+function shouldCheckForUpdate(lastChecked, now) {
+  const last = toMs(lastChecked);
+  if (!Number.isFinite(last)) return true;
+  const elapsed = toMs(now) - last;
+  return elapsed < 0 || elapsed >= UPDATE_CHECK_EVERY;
+}
+
+// Raw GitHub URLs for a widget's manifest and built script, or null if any part is malformed.
+// repo: owner/repo. widget: the folder under widgets/. script: the output filename in dist/.
+function updateUrl(repo, widget, script) {
+  if (typeof repo !== 'string' || !REPO_PATTERN.test(repo) || repo.includes('..')) return null;
+  if (typeof widget !== 'string' || !WIDGET_PATTERN.test(widget)) return null;
+  if (typeof script !== 'string' || !SCRIPT_PATTERN.test(script) || script === '.js' || script.startsWith('..')) return null;
+  const base = `https://raw.githubusercontent.com/${repo}/${RELEASE_BRANCH}`;
+  return {
+    manifest: `${base}/widgets/${widget}/version.json`,
+    script: `${base}/dist/${encodeURIComponent(script)}`,
+  };
+}
+
+// Sanity checks on a downloaded script before it replaces the installed one.
+function isPlausibleUpdate(source, expectedVersion, currentVersion) {
+  const fail = (reason) => ({ ok: false, reason });
+  if (typeof source !== 'string' || !source.trim()) return fail('The download was empty.');
+  if (!source.startsWith(SCRIPTABLE_HEADER)) return fail("The download isn't a Scriptable script.");
+  const newer = compareVersions(expectedVersion, currentVersion);
+  if (newer === null) return fail('A version number was malformed.');
+  if (newer <= 0) return fail(`${expectedVersion} isn't newer than the installed ${currentVersion}.`);
+  if (!source.includes(`\n${versionLine(expectedVersion)}\n`)) {
+    return fail(`The download's version doesn't match ${expectedVersion}.`);
+  }
+  return { ok: true };
+}
+
+// Thin wrappers over Scriptable's FileManager and Keychain, shared by widgets.
+// They use Scriptable globals at call time, so the tests stand those in.
+
+function localPath(name) {
+  const fm = FileManager.local();
+  return fm.joinPath(fm.documentsDirectory(), name);
+}
+
+// The parsed JSON in a local documents file, or {} if it's missing, malformed or null.
+function readJsonFile(name) {
+  try {
+    return JSON.parse(FileManager.local().readString(localPath(name))) ?? {};
+  } catch (e) {
+    return {};
+  }
+}
+
+const writeJsonFile = (name, value) => FileManager.local().writeString(localPath(name), JSON.stringify(value));
+
+const keychainHas = (key) => Keychain.contains(key);
+const keychainGet = (key) => (Keychain.contains(key) ? Keychain.get(key) : null);
+const keychainSet = (key, value) => Keychain.set(key, value);
+function keychainRemove(key) {
+  if (Keychain.contains(key)) Keychain.remove(key);
+}
+
 // Pure logic for the SG Haze widget. No Scriptable APIs here: everything is tested under Node.
+// The build strips the require below; shared/time.js comes before this file in the bundle.
 
 const REGIONS = ['north', 'south', 'east', 'west', 'central'];
 const DEFAULT_REGION = 'central';
@@ -36,13 +172,8 @@ function parseLatestPsi(json, region) {
   return readMetric(json, 'psi_twenty_four_hourly', region).at(-1) ?? null;
 }
 
-const HOUR = 3600e3;
-const DAY = 24 * HOUR;
-const SGT_OFFSET = 8 * HOUR; // Singapore is UTC+8 with no daylight saving
-const STALE_AFTER = 2 * HOUR;
+const STALE_AFTER_MINUTES = 120; // readings older than this are flagged stale
 const REFRESH_MINUTE = 50; // NEA publishes each hour's reading at about :45
-
-const toMs = (t) => (t instanceof Date ? t.getTime() : t);
 
 // Today's and yesterday's dates in Singapore, as YYYY-MM-DD for the API's ?date= parameter.
 function sgtDateStrings(now) {
@@ -68,12 +199,6 @@ function nextRefresh(now) {
   next.setUTCMinutes(REFRESH_MINUTE, 0, 0);
   if (next.getTime() <= toMs(now)) next.setTime(next.getTime() + HOUR);
   return next;
-}
-
-function isStale(latestTime, now) {
-  const time = toMs(latestTime);
-  if (!Number.isFinite(time)) return true;
-  return toMs(now) - time > STALE_AFTER;
 }
 
 // Band tables. Source: NEA, haze.gov.sg ("1-hr PM2.5 concentration bands" and "PSI descriptors").
@@ -149,100 +274,20 @@ function chartPoints(series, width, height, padding, range) {
   return { segments, yMax };
 }
 
-// Singapore wall-clock time as "3:00pm".
-function formatSgtTime(time) {
-  const ms = toMs(time);
-  if (!Number.isFinite(ms)) return null;
-  const d = new Date(ms + SGT_OFFSET);
-  const h = d.getUTCHours();
-  const mm = String(d.getUTCMinutes()).padStart(2, '0');
-  return `${h % 12 || 12}:${mm}${h < 12 ? 'am' : 'pm'}`;
-}
-
-// Time of the reading.
-function formatUpdated(time) {
-  const t = formatSgtTime(time);
-  return t ? `Updated ${t}` : '';
-}
-
 // Time the widget last refreshed (DECISIONS.md #2).
 function formatChecked(time) {
   const t = formatSgtTime(time);
   return t ? `Checked ${t}` : '';
 }
 
-// --- Versions and updates ---
-
-const VERSION_PATTERN = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
-const REPO_PATTERN = /^[A-Za-z0-9-]+\/[A-Za-z0-9._-]+$/;
-const UPDATE_CHECK_EVERY = DAY;
-const SCRIPTABLE_HEADER = '// Variables used by Scriptable.';
-const RELEASE_BRANCH = 'main';
-const RELEASE_PATH = 'release/SG Haze.js'; // scripts/release.sh copies the bundle here
-
-const parseVersion = (v) => (typeof v === 'string' && v.match(VERSION_PATTERN)?.slice(1).map(Number)) || null;
-const isVersion = (v) => parseVersion(v) !== null;
-
-// The line scripts/build.js writes into the bundle and isPlausibleUpdate looks for.
-const versionLine = (version) => `const VERSION = '${version}';`;
-
-// 1 if a is newer, -1 if older, 0 if equal; null if either isn't a plain x.y.z version.
-function compareVersions(a, b) {
-  const [pa, pb] = [parseVersion(a), parseVersion(b)];
-  if (!pa || !pb) return null;
-  for (let i = 0; i < 3; i++) {
-    if (pa[i] !== pb[i]) return pa[i] > pb[i] ? 1 : -1;
-  }
-  return 0;
-}
-
-// version.json text to { version, notes }; null if it isn't valid.
-function parseManifest(text) {
-  let json;
-  try {
-    json = JSON.parse(text);
-  } catch (e) {
-    return null;
-  }
-  if (!json || typeof json !== 'object' || !isVersion(json.version)) return null;
-  return { version: json.version, notes: typeof json.notes === 'string' ? json.notes : '' };
-}
-
-// At most one check a day. A last check in the future means the clock changed, so check again.
-function shouldCheckForUpdate(lastChecked, now) {
-  const last = toMs(lastChecked);
-  if (!Number.isFinite(last)) return true;
-  const elapsed = toMs(now) - last;
-  return elapsed < 0 || elapsed >= UPDATE_CHECK_EVERY;
-}
-
-// Raw GitHub URLs for the manifest and the released bundle, or null for anything but owner/repo.
-function updateUrl(repo) {
-  if (typeof repo !== 'string' || !REPO_PATTERN.test(repo) || repo.includes('..')) return null;
-  const base = `https://raw.githubusercontent.com/${repo}/${RELEASE_BRANCH}`;
-  return { manifest: `${base}/version.json`, script: `${base}/${RELEASE_PATH.split('/').map(encodeURIComponent).join('/')}` };
-}
-
-// Sanity checks on a downloaded script before it replaces the installed one.
-function isPlausibleUpdate(source, expectedVersion, currentVersion) {
-  const fail = (reason) => ({ ok: false, reason });
-  if (typeof source !== 'string' || !source.trim()) return fail('The download was empty.');
-  if (!source.startsWith(SCRIPTABLE_HEADER)) return fail("The download isn't a Scriptable script.");
-  const newer = compareVersions(expectedVersion, currentVersion);
-  if (newer === null) return fail('A version number was malformed.');
-  if (newer <= 0) return fail(`${expectedVersion} isn't newer than the installed ${currentVersion}.`);
-  if (!source.includes(`\n${versionLine(expectedVersion)}\n`)) {
-    return fail(`The download's version doesn't match ${expectedVersion}.`);
-  }
-  return { ok: true };
-}
-
 // Scriptable layer: requests, Keychain, file cache and drawing. Kept thin: logic lives in core.js.
-// Only runs inside Scriptable; tested by hand on the phone. The build strips the require below.
+// Only runs inside Scriptable; tested by hand on the phone. The build strips the requires below.
 
-// Both set by scripts/build.js from package.json; the repo is fixed in the published script.
-const VERSION = '1.0.0';
-const UPDATE_REPO = 'jkfliu/sg-haze-widget';
+// All set by scripts/build.js from widget.json; the update source is fixed in the published script.
+const VERSION = '1.1.0';
+const UPDATE_REPO = 'jkfliu/scriptable-widgets';
+const UPDATE_WIDGET = 'sg-haze';
+const UPDATE_SCRIPT = 'SG Haze.js';
 
 const API_BASE = 'https://api-open.data.gov.sg/v2/real-time/api';
 const HAZE_URL = 'https://www.haze.gov.sg';
@@ -263,7 +308,7 @@ const MUTED = Color.dynamic(new Color('#6e6e73'), new Color('#98989d'));
 async function fetchJson(endpoint, date) {
   const req = new Request(`${API_BASE}/${endpoint}${date ? `?date=${date}` : ''}`);
   req.timeoutInterval = 15;
-  if (Keychain.contains(KEYCHAIN_KEY)) req.headers = { 'x-api-key': Keychain.get(KEYCHAIN_KEY) };
+  if (keychainHas(KEYCHAIN_KEY)) req.headers = { 'x-api-key': keychainGet(KEYCHAIN_KEY) };
   const json = await req.loadJSON();
   const status = req.response.statusCode;
   if (status === 404) return null;
@@ -271,20 +316,6 @@ async function fetchJson(endpoint, date) {
   return json;
 }
 
-function localPath(name) {
-  const fm = FileManager.local();
-  return fm.joinPath(fm.documentsDirectory(), name);
-}
-
-function readJsonFile(name) {
-  try {
-    return JSON.parse(FileManager.local().readString(localPath(name))) ?? {};
-  } catch (e) {
-    return {};
-  }
-}
-
-const writeJsonFile = (name, value) => FileManager.local().writeString(localPath(name), JSON.stringify(value));
 const readCache = () => readJsonFile(CACHE_FILE);
 
 // { series, psi, fetchedAt, failed } for the region, falling back to the cache when a request fails.
@@ -312,7 +343,7 @@ async function loadData(region, now) {
 // --- Updates (on by default; see README "For friends") ---
 
 // null in a dev build (no repo set), which turns all update features off.
-const UPDATE_URLS = updateUrl(UPDATE_REPO);
+const UPDATE_URLS = updateUrl(UPDATE_REPO, UPDATE_WIDGET, UPDATE_SCRIPT);
 
 // Settings: { updateChecks: boolean, lastChecked: ms, latest: { version, notes } }
 // Update checks are on unless turned off in the menu (DECISIONS.md #16).
@@ -389,7 +420,7 @@ function viewModel(region, data, now) {
     pmBand: pm25Band(pm?.value),
     psi,
     psiBand: psiBand(psi?.value),
-    stale: !data || data.failed || isStale(pm?.time, now),
+    stale: !data || data.failed || isStale(pm?.time, now, STALE_AFTER_MINUTES),
     updated: formatUpdated(pm?.time),
     checked: formatChecked(data?.fetchedAt),
     // Footer under the chart: says what the chart shows, then when the reading was taken.
@@ -534,7 +565,7 @@ async function promptForApiKey() {
   a.addCancelAction('Cancel');
   if ((await a.present()) !== 0) return;
   const key = a.textFieldValue(0).trim();
-  if (key) Keychain.set(KEYCHAIN_KEY, key);
+  if (key) keychainSet(KEYCHAIN_KEY, key);
 }
 
 async function showMessage(title, message) {
@@ -585,7 +616,7 @@ async function runInApp(region, now) {
   const data = await loadData(region, now);
   const settings = readSettings();
   for (;;) {
-    const hasKey = Keychain.contains(KEYCHAIN_KEY);
+    const hasKey = keychainHas(KEYCHAIN_KEY);
     const update = showUpdate(settings);
     const menu = new Alert();
     menu.title = 'SG Haze';
@@ -608,7 +639,7 @@ async function runInApp(region, now) {
     for (const [label] of actions) menu.addAction(label);
     if (hasKey) {
       menu.addDestructiveAction('Clear API key');
-      actions.push(['Clear API key', () => Keychain.remove(KEYCHAIN_KEY)]);
+      actions.push(['Clear API key', () => keychainRemove(KEYCHAIN_KEY)]);
     }
     menu.addCancelAction('Done');
     const choice = await menu.presentSheet();

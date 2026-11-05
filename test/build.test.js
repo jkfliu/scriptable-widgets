@@ -69,10 +69,33 @@ describe('bundle', () => {
   });
 
   test('sets UPDATE_REPO only when the config has updateRepo', () => {
-    const w = widget.replace("const VERSION = 'dev';", "const VERSION = 'dev';\nconst UPDATE_REPO = '';");
-    const withRepo = bundle({ config: { ...config, updateRepo: 'jkfliu/demo' }, shared: [], core, widget: w });
+    const w = widget.replace(
+      "const VERSION = 'dev';",
+      "const VERSION = 'dev';\nconst UPDATE_REPO = '';\nconst UPDATE_WIDGET = '';\nconst UPDATE_SCRIPT = '';",
+    );
+    const withRepo = bundle({ config: { ...config, updateRepo: 'jkfliu/demo' }, folder: 'demo', shared: [], core, widget: w });
     assert.match(withRepo, /^const UPDATE_REPO = 'jkfliu\/demo';$/m);
     assert.throws(() => bundle({ config: { ...config, updateRepo: 'jkfliu/demo' }, shared: [], core, widget }), /UPDATE_REPO/);
+  });
+
+  test("with updateRepo, also sets UPDATE_WIDGET to the widget's folder and UPDATE_SCRIPT to its output", () => {
+    const w = widget.replace(
+      "const VERSION = 'dev';",
+      "const VERSION = 'dev';\nconst UPDATE_REPO = '';\nconst UPDATE_WIDGET = '';\nconst UPDATE_SCRIPT = '';",
+    );
+    const out = bundle({ config: { ...config, updateRepo: 'jkfliu/demo' }, folder: 'demo-widget', shared: [], core, widget: w });
+    assert.match(out, /^const UPDATE_WIDGET = 'demo-widget';$/m);
+    assert.match(out, /^const UPDATE_SCRIPT = 'Demo\.js';$/m);
+    const noWidgetLine = w.replace(/^const UPDATE_WIDGET.*\n/m, '');
+    assert.throws(
+      () => bundle({ config: { ...config, updateRepo: 'jkfliu/demo' }, folder: 'demo-widget', shared: [], core, widget: noWidgetLine }),
+      /UPDATE_WIDGET/,
+    );
+    const noScriptLine = w.replace(/^const UPDATE_SCRIPT.*\n/m, '');
+    assert.throws(
+      () => bundle({ config: { ...config, updateRepo: 'jkfliu/demo' }, folder: 'demo-widget', shared: [], core, widget: noScriptLine }),
+      /UPDATE_SCRIPT/,
+    );
   });
 
   test('parses as JavaScript', () => {
@@ -173,6 +196,38 @@ describe('buildWidget and listWidgets on a temp repo', () => {
     assert.throws(() => buildWidget('bad', root), /missing/);
   });
 
+  test('throws when core or the widget requires a shared module the widget.json does not list', () => {
+    const r = tempRepo({
+      'shared/format.js': format,
+      'widgets/w/widget.json': JSON.stringify({ ...config, shared: [] }),
+      'widgets/w/src/core.js': core,
+      'widgets/w/src/widget.js': widget,
+    });
+    assert.throws(() => buildWidget('w', r), /format.*not listed/);
+    fs.writeFileSync(path.join(r, 'widgets/w/src/core.js'), 'function a() {}\n\nmodule.exports = { a };\n');
+    fs.writeFileSync(path.join(r, 'widgets/w/src/widget.js'), widget.replace('// Scriptable layer.', "const { fmt } = require('../../../shared/format.js');"));
+    assert.throws(() => buildWidget('w', r), /format.*not listed/);
+  });
+
+  test('throws when a shared module requires one listed after it, or not at all', () => {
+    const r = tempRepo({
+      'shared/format.js': format,
+      'shared/clock.js': clock,
+      'widgets/late/widget.json': JSON.stringify({ ...config, shared: ['clock', 'format'] }),
+      'widgets/late/src/core.js': 'function a() {}\n\nmodule.exports = { a };\n',
+      'widgets/late/src/widget.js': widget,
+      'widgets/none/widget.json': JSON.stringify({ ...config, shared: ['clock'] }),
+      'widgets/none/src/core.js': 'function a() {}\n\nmodule.exports = { a };\n',
+      'widgets/none/src/widget.js': widget,
+      'widgets/ok/widget.json': JSON.stringify({ ...config, shared: ['format', 'clock'] }),
+      'widgets/ok/src/core.js': 'function a() {}\n\nmodule.exports = { a };\n',
+      'widgets/ok/src/widget.js': widget,
+    });
+    assert.throws(() => buildWidget('late', r), /clock.*format/);
+    assert.throws(() => buildWidget('none', r), /clock.*format/);
+    assert.doesNotThrow(() => buildWidget('ok', r));
+  });
+
   test('rejects widget and shared names that would escape their folders', () => {
     assert.throws(() => buildWidget('../one', root), /widget name/);
     const evil = tempRepo({
@@ -197,6 +252,16 @@ describe('the real widgets', () => {
 
       test('bundle is valid JavaScript', () => {
         assert.doesNotThrow(() => parses(built.source));
+      });
+
+      test('bundle starts with the Scriptable header and carries the version from widget.json', () => {
+        const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'widgets', name, 'widget.json'), 'utf8'));
+        assert.ok(built.source.startsWith('// Variables used by Scriptable.\n'));
+        assert.ok(built.source.includes(`\nconst VERSION = '${config.version}';\n`));
+      });
+
+      test('a name declared twice fails to parse, so the valid-JavaScript check catches clashes', () => {
+        assert.throws(() => parses(`${built.source}\nconst VERSION = 1;\n`), SyntaxError);
       });
 
       test('bundle has no leftover CommonJS', () => {

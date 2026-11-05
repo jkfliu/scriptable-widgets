@@ -23,6 +23,11 @@ const REQUIRES = /^const \{[^}]*\} = require\('[^']*'\);\n?/gm;
 const REQUIRE_CORE = /^const \{[^}]*\} = require\('\.\/core\.js'\);\n?/m;
 const VERSION_LINE = /^const VERSION = '[^']*';$/m;
 const REPO_LINE = /^const UPDATE_REPO = '[^']*';$/m;
+const WIDGET_LINE = /^const UPDATE_WIDGET = '[^']*';$/m;
+const SCRIPT_LINE = /^const UPDATE_SCRIPT = '[^']*';$/m;
+// Shared modules a file requires: './x.js' from another shared module, '../../../shared/x.js' from a widget.
+const SHARED_REQUIRE = /require\('\.\/([^']+)\.js'\)/g;
+const WIDGET_SHARED_REQUIRE = /require\('\.\.\/\.\.\/\.\.\/shared\/([^']+)\.js'\)/g;
 
 // Parses and checks a widget.json. Throws with a clear message on anything malformed.
 function readConfig(text) {
@@ -66,8 +71,9 @@ function header({ icon } = {}) {
   ].join('\n');
 }
 
-// config: a parsed widget.json. shared: [{ name, source }] in the order listed. core, widget: sources.
-function bundle({ config, shared, core, widget }) {
+// config: a parsed widget.json. folder: the widget's folder under widgets/.
+// shared: [{ name, source }] in the order listed. core, widget: sources.
+function bundle({ config, folder, shared, core, widget }) {
   if (!VERSION_PATTERN.test(config.version ?? '')) throw new Error(`build: bad version ${config.version}`);
   if (config.updateRepo !== undefined && (!REPO_PATTERN.test(config.updateRepo) || config.updateRepo.includes('..'))) {
     throw new Error(`build: bad update repo ${config.updateRepo}`);
@@ -82,6 +88,9 @@ function bundle({ config, shared, core, widget }) {
   main = setLine(main, VERSION_LINE, `const VERSION = '${config.version}';`, 'VERSION');
   if (config.updateRepo !== undefined) {
     main = setLine(main, REPO_LINE, `const UPDATE_REPO = '${config.updateRepo}';`, 'UPDATE_REPO');
+    if (!NAME_PATTERN.test(folder ?? '')) throw new Error(`build: bad widget folder ${folder}`);
+    main = setLine(main, WIDGET_LINE, `const UPDATE_WIDGET = '${folder}';`, 'UPDATE_WIDGET');
+    main = setLine(main, SCRIPT_LINE, `const UPDATE_SCRIPT = '${config.output}';`, 'UPDATE_SCRIPT');
   }
   return `${[header(config), ...parts, main].join('\n\n')}\n`;
 }
@@ -97,6 +106,25 @@ function listWidgets(root = ROOT) {
     .sort();
 }
 
+const requiredNames = (source, pattern) => [...source.matchAll(pattern)].map((m) => m[1]);
+
+// The bundle is one scope, so every shared module a file uses must be in it, and before its users.
+// Otherwise the bundle would still parse but fail with a ReferenceError on the phone.
+function checkSharedRequires(name, listed, shared, widgetSources) {
+  shared.forEach((mod, i) => {
+    for (const dep of requiredNames(mod.source, SHARED_REQUIRE)) {
+      if (!listed.slice(0, i).includes(dep)) {
+        throw new Error(`build: shared/${mod.name}.js requires ${dep}, which ${name}'s widget.json must list before ${mod.name}`);
+      }
+    }
+  });
+  for (const source of widgetSources) {
+    for (const dep of requiredNames(source, WIDGET_SHARED_REQUIRE)) {
+      if (!listed.includes(dep)) throw new Error(`build: ${name} requires shared module ${dep}, which is not listed in its widget.json`);
+    }
+  }
+}
+
 // { output, source } for one widget.
 function buildWidget(name, root = ROOT) {
   if (!NAME_PATTERN.test(name)) throw new Error(`build: bad widget name ${name}`);
@@ -110,12 +138,10 @@ function buildWidget(name, root = ROOT) {
     if (!fs.existsSync(file)) throw new Error(`build: ${name} lists shared module ${mod}, which doesn't exist`);
     return { name: mod, source: read(file) };
   });
-  const source = bundle({
-    config,
-    shared,
-    core: read(path.join(dir, 'src', 'core.js')),
-    widget: read(path.join(dir, 'src', 'widget.js')),
-  });
+  const core = read(path.join(dir, 'src', 'core.js'));
+  const widget = read(path.join(dir, 'src', 'widget.js'));
+  checkSharedRequires(name, config.shared, shared, [core, widget]);
+  const source = bundle({ config, folder: name, shared, core, widget });
   return { output: config.output, source };
 }
 

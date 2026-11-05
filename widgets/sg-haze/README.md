@@ -17,7 +17,7 @@ Someone sent you this widget? Here's how to set it up. The [setup page](https://
 First install the free [Scriptable](https://apps.apple.com/app/scriptable/id1405459188) app and open it once. Then use either method:
 
 - **AirDrop:** when the `SG Haze.js` file arrives, choose **Save to Files** and save it in **iCloud Drive › Scriptable**. It then appears in Scriptable as **SG Haze**.
-- **Copy and paste:** open [`release/SG Haze.js`](https://github.com/jkfliu/sg-haze-widget/blob/main/release/SG%20Haze.js) on GitHub, tap **Raw**, and copy all of it. In Scriptable, tap **+**, paste, then tap the title at the top and rename the script **SG Haze**.
+- **Copy and paste:** open [`dist/SG Haze.js`](https://github.com/jkfliu/scriptable-widgets/blob/main/dist/SG%20Haze.js) on GitHub, tap **Raw**, and copy all of it. In Scriptable, tap **+**, paste, then tap the title at the top and rename the script **SG Haze**.
 
 ### 2. Add the widget and choose your region
 
@@ -31,7 +31,7 @@ The widget works without a key. If you'd like one, create a free account at [dat
 
 Update checks are **on** from the start:
 
-- Once a day, the widget reads a small version file from [github.com/jkfliu/sg-haze-widget](https://github.com/jkfliu/sg-haze-widget). If there's a newer version, the widget shows **↑ update**.
+- Once a day, the widget reads a small version file from [github.com/jkfliu/scriptable-widgets](https://github.com/jkfliu/scriptable-widgets). If there's a newer version, the widget shows **↑ update**.
 - Nothing installs by itself. To update, open SG Haze in Scriptable and choose **Install update**. You'll see the release notes first.
 - **Installing means running code downloaded from that GitHub repo on your phone.** Only install updates if you trust it. The script checks that the download looks like a newer SG Haze script before using it.
 - The current version is kept as **SG Haze (previous)**, so you can go back to it. If the install fails, your current script isn't changed.
@@ -44,8 +44,8 @@ If you'd rather the widget never contacted GitHub, open Scriptable, tap **SG Haz
 
 You need the free Scriptable app from the App Store.
 
-- **From this Mac:** run `npm run deploy` (see [Development](#development)). This copies `SG Haze.js` into Scriptable's iCloud folder, and it appears in Scriptable on the phone within a minute or so.
-- **By hand:** copy the contents of `dist/SG Haze.js` (from `npm run build`) into a new script in Scriptable, and name it `SG Haze`.
+- **From this Mac:** run `npm run deploy` from the repo root (see [Development](#development)). This copies `SG Haze.js` into Scriptable's iCloud folder, and it appears in Scriptable on the phone within a minute or so.
+- **By hand:** copy the contents of the repo's `dist/SG Haze.js` (from `npm run build` at the repo root) into a new script in Scriptable, and name it `SG Haze`.
 
 ### Add a home screen widget
 
@@ -93,16 +93,13 @@ The key is stored in the iPhone's Keychain and sent only to data.gov.sg. The sam
 
 ## Development
 
-Requires Node 20 or later (`.nvmrc` pins 22, so run `nvm use`). There are no dependencies to install.
+Requires Node 22 or later (the repo root's `.nvmrc`). There are no dependencies to install. Building, deploying and the full test suite run from the repo root (see the root README); the commands below run in this folder.
 
 | Command | What it does |
 |---------|--------------|
-| `npm test` | Runs all tests |
-| `npm run coverage` | Runs tests with line and branch coverage |
-| `npm run build` | Bundles `src/core.js` and `src/widget.js` into `dist/SG Haze.js` |
-| `npm run deploy` | Builds, then copies the bundle into the iCloud Scriptable folder |
+| `npm test` | Runs SG Haze's tests (the root `npm test` runs these plus the shared and build tests) |
+| `npm run coverage` | Runs SG Haze's tests with line and branch coverage |
 | `npm run preview -- west` | Writes `dist/preview.html` and opens it: every widget size in light and dark mode, normal and offline. Add `--live` for current data, or `--no-open` to skip opening it |
-| `npm run release -- 1.1.0 "Notes"` | Checks the version is newer, runs tests, sets the version, builds, scans for secrets, and writes `release/SG Haze.js` and `version.json` |
 | `npm run fixtures` | Downloads fresh API responses into `test/fixtures/` |
 | `LIVE=1 npm test` | Also runs the opt-in test against the live API |
 
@@ -111,20 +108,16 @@ The preview runs the real bundle with stand-in versions of Scriptable's widget c
 ### Layout
 
 ```
+widget.json          name, output, version, shared modules and update repo, read by the build
 src/core.js          pure logic: parsing, time window, bands, chart geometry, formatting (fully tested)
 src/widget.js        Scriptable layer: requests, cache, Keychain, drawing, layouts, in-app menu
-scripts/build.js     bundles core + widget into one script for Scriptable
-scripts/deploy.sh    builds and copies the bundle to iCloud
 scripts/preview.js   renders the widget as HTML on the Mac
-scripts/release.sh   prepares a release (see the table above)
-../../scripts/check-secrets.js   scans the bundle for keys and personal data
 scripts/fetch-fixtures.js  captures real API responses
-release/SG Haze.js   the published script, fetched by the updater and linked for friends
 version.json         { version, notes } of the latest release, read by the update check
 test/                Node tests (node --test); fixtures in test/fixtures/
 ```
 
-All logic lives in `src/core.js` and is tested under Node. `src/widget.js` is kept thin because it only runs inside Scriptable. The preview tests exercise it through the stand-in classes.
+All logic lives in `src/core.js` (and the repo's `shared/`, which the build puts first in the bundle) and is tested under Node. `src/widget.js` is kept thin because it only runs inside Scriptable. The preview tests exercise it through the stand-in classes.
 
 ### Further reading
 

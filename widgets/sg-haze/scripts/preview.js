@@ -8,7 +8,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const { execFile } = require('node:child_process');
-const { buildBundle } = require('./build.js');
+const { buildWidget } = require('../../../scripts/build.js');
 const { sgtDateStrings } = require('../src/core.js');
 
 const ROOT = path.join(__dirname, '..');
@@ -319,7 +319,7 @@ ${sections}
 
 // Builds the page for a region. `source` overrides the bundle (used by tests).
 async function renderPreview({ region = '', live = false, source } = {}) {
-  const script = source ?? buildBundle();
+  const script = source ?? buildWidget('sg-haze').source;
   const now = live ? Date.now() : FIXTURE_NOW;
   const online = live ? liveResponder() : fixtureResponder;
   const rows = [];

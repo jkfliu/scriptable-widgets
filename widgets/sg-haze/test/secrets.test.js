@@ -1,7 +1,7 @@
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const { findSecrets } = require('../../../scripts/check-secrets.js');
-const { buildBundle } = require('../scripts/build.js');
+const { buildWidget } = require('../../../scripts/build.js');
 
 describe('findSecrets catches planted secrets', () => {
   const cases = {
@@ -47,7 +47,7 @@ describe('findSecrets allows normal code', () => {
 });
 
 describe('the published bundle', () => {
-  const bundle = buildBundle();
+  const bundle = buildWidget('sg-haze').source;
 
   test('contains no API key or personal data', () => {
     assert.deepEqual(findSecrets(bundle), []);

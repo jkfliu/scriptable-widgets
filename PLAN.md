@@ -71,7 +71,9 @@ widget.json also takes `icon` (Scriptable header) and an optional `updateRepo`. 
 - scripts/deploy.sh copies everything in dist/ to ~/Library/Mobile Documents/iCloud~dk~simonbs~Scriptable/Documents/ (only useful on a Mac).
 - Stop for review.
 
-### Phase 3: Pull out shared code (tests first)
+### Phase 3: Pull out shared code (tests first) ✅ Done
+shared/time.js, shared/update.js (including isPlausibleUpdate) and shared/storage.js, each with tests. updateUrl(repo, widget, script); the build fills in UPDATE_WIDGET and UPDATE_SCRIPT, and checks shared requires are listed in order. SG Haze 1.1.0 updates from this repo; its old build, release, deploy scripts and release/ are retired. Preview output is byte-identical before and after.
+
 Move these from SG Haze into shared/, along with their tests:
 - formatUpdated(time)
 - isStale(latestTime, now, maxAgeMinutes)

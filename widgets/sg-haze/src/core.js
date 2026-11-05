@@ -1,4 +1,6 @@
 // Pure logic for the SG Haze widget. No Scriptable APIs here: everything is tested under Node.
+// The build strips the require below; shared/time.js comes before this file in the bundle.
+const { HOUR, DAY, SGT_OFFSET, toMs, formatSgtTime } = require('../../../shared/time.js');
 
 const REGIONS = ['north', 'south', 'east', 'west', 'central'];
 const DEFAULT_REGION = 'central';
@@ -32,13 +34,8 @@ function parseLatestPsi(json, region) {
   return readMetric(json, 'psi_twenty_four_hourly', region).at(-1) ?? null;
 }
 
-const HOUR = 3600e3;
-const DAY = 24 * HOUR;
-const SGT_OFFSET = 8 * HOUR; // Singapore is UTC+8 with no daylight saving
-const STALE_AFTER = 2 * HOUR;
+const STALE_AFTER_MINUTES = 120; // readings older than this are flagged stale
 const REFRESH_MINUTE = 50; // NEA publishes each hour's reading at about :45
-
-const toMs = (t) => (t instanceof Date ? t.getTime() : t);
 
 // Today's and yesterday's dates in Singapore, as YYYY-MM-DD for the API's ?date= parameter.
 function sgtDateStrings(now) {
@@ -64,12 +61,6 @@ function nextRefresh(now) {
   next.setUTCMinutes(REFRESH_MINUTE, 0, 0);
   if (next.getTime() <= toMs(now)) next.setTime(next.getTime() + HOUR);
   return next;
-}
-
-function isStale(latestTime, now) {
-  const time = toMs(latestTime);
-  if (!Number.isFinite(time)) return true;
-  return toMs(now) - time > STALE_AFTER;
 }
 
 // Band tables. Source: NEA, haze.gov.sg ("1-hr PM2.5 concentration bands" and "PSI descriptors").
@@ -145,98 +136,14 @@ function chartPoints(series, width, height, padding, range) {
   return { segments, yMax };
 }
 
-// Singapore wall-clock time as "3:00pm".
-function formatSgtTime(time) {
-  const ms = toMs(time);
-  if (!Number.isFinite(ms)) return null;
-  const d = new Date(ms + SGT_OFFSET);
-  const h = d.getUTCHours();
-  const mm = String(d.getUTCMinutes()).padStart(2, '0');
-  return `${h % 12 || 12}:${mm}${h < 12 ? 'am' : 'pm'}`;
-}
-
-// Time of the reading.
-function formatUpdated(time) {
-  const t = formatSgtTime(time);
-  return t ? `Updated ${t}` : '';
-}
-
 // Time the widget last refreshed (DECISIONS.md #2).
 function formatChecked(time) {
   const t = formatSgtTime(time);
   return t ? `Checked ${t}` : '';
 }
 
-// --- Versions and updates ---
-
-const VERSION_PATTERN = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
-const REPO_PATTERN = /^[A-Za-z0-9-]+\/[A-Za-z0-9._-]+$/;
-const UPDATE_CHECK_EVERY = DAY;
-const SCRIPTABLE_HEADER = '// Variables used by Scriptable.';
-const RELEASE_BRANCH = 'main';
-const RELEASE_PATH = 'release/SG Haze.js'; // scripts/release.sh copies the bundle here
-
-const parseVersion = (v) => (typeof v === 'string' && v.match(VERSION_PATTERN)?.slice(1).map(Number)) || null;
-const isVersion = (v) => parseVersion(v) !== null;
-
-// The line scripts/build.js writes into the bundle and isPlausibleUpdate looks for.
-const versionLine = (version) => `const VERSION = '${version}';`;
-
-// 1 if a is newer, -1 if older, 0 if equal; null if either isn't a plain x.y.z version.
-function compareVersions(a, b) {
-  const [pa, pb] = [parseVersion(a), parseVersion(b)];
-  if (!pa || !pb) return null;
-  for (let i = 0; i < 3; i++) {
-    if (pa[i] !== pb[i]) return pa[i] > pb[i] ? 1 : -1;
-  }
-  return 0;
-}
-
-// version.json text to { version, notes }; null if it isn't valid.
-function parseManifest(text) {
-  let json;
-  try {
-    json = JSON.parse(text);
-  } catch (e) {
-    return null;
-  }
-  if (!json || typeof json !== 'object' || !isVersion(json.version)) return null;
-  return { version: json.version, notes: typeof json.notes === 'string' ? json.notes : '' };
-}
-
-// At most one check a day. A last check in the future means the clock changed, so check again.
-function shouldCheckForUpdate(lastChecked, now) {
-  const last = toMs(lastChecked);
-  if (!Number.isFinite(last)) return true;
-  const elapsed = toMs(now) - last;
-  return elapsed < 0 || elapsed >= UPDATE_CHECK_EVERY;
-}
-
-// Raw GitHub URLs for the manifest and the released bundle, or null for anything but owner/repo.
-function updateUrl(repo) {
-  if (typeof repo !== 'string' || !REPO_PATTERN.test(repo) || repo.includes('..')) return null;
-  const base = `https://raw.githubusercontent.com/${repo}/${RELEASE_BRANCH}`;
-  return { manifest: `${base}/version.json`, script: `${base}/${RELEASE_PATH.split('/').map(encodeURIComponent).join('/')}` };
-}
-
-// Sanity checks on a downloaded script before it replaces the installed one.
-function isPlausibleUpdate(source, expectedVersion, currentVersion) {
-  const fail = (reason) => ({ ok: false, reason });
-  if (typeof source !== 'string' || !source.trim()) return fail('The download was empty.');
-  if (!source.startsWith(SCRIPTABLE_HEADER)) return fail("The download isn't a Scriptable script.");
-  const newer = compareVersions(expectedVersion, currentVersion);
-  if (newer === null) return fail('A version number was malformed.');
-  if (newer <= 0) return fail(`${expectedVersion} isn't newer than the installed ${currentVersion}.`);
-  if (!source.includes(`\n${versionLine(expectedVersion)}\n`)) {
-    return fail(`The download's version doesn't match ${expectedVersion}.`);
-  }
-  return { ok: true };
-}
-
 module.exports = {
   REGIONS, normaliseRegion, parsePm25Series, parseLatestPsi,
-  sgtDateStrings, rolling24h, nextRefresh, isStale,
-  pm25Band, psiBand, chartY, chartBands, chartPoints, formatUpdated, formatChecked,
-  compareVersions, parseManifest, shouldCheckForUpdate, updateUrl, isPlausibleUpdate,
-  isVersion, versionLine, SCRIPTABLE_HEADER,
+  sgtDateStrings, rolling24h, nextRefresh, STALE_AFTER_MINUTES,
+  pm25Band, psiBand, chartY, chartBands, chartPoints, formatChecked,
 };

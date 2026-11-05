@@ -20,6 +20,7 @@ Changes to the original plan, agreed on 2026-10-24.
 | 14 | Mac preview | `npm run preview -- <region> [--live]` writes `dist/preview.html`: the real bundle rendered with stand-in Scriptable classes, in light/dark and normal/offline states. An approximation; the phone has the final say. |
 | 15 | Update source | Updates come from the public repo `jkfliu/sg-haze-widget` (`updateRepo` in package.json, fixed in the build). `dist/` stays untracked, so each release copies the bundle to a tracked `release/SG Haze.js`. The updater reads `version.json` and `release/SG Haze.js` on `main`. |
 | 16 | Update checks default | Update checks are **on by default** for everyone (PLAN.md said off), and can be turned off in the in-app menu. Installing still only happens when the user taps Install. |
+| 17 | Moved to scriptable-widgets (2026-11-05) | From 1.1.0, SG Haze lives in `widgets/sg-haze/` of `jkfliu/scriptable-widgets` and is built by the repo's `scripts/build.js` from `widget.json`. Updates read `widgets/sg-haze/version.json` and `dist/SG Haze.js` on `main` of that repo; `release/` is retired, since `dist/` is committed there. This replaces #15 for 1.1.0 and later; 1.0.0 installs still check `jkfliu/sg-haze-widget`. |
 
 ## Technical fixes (no decision needed)
 

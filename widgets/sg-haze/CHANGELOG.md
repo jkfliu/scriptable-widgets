@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.0 (2026-11-05)
+
+Moved into the scriptable-widgets repo. No change to how the widget looks or works.
+
+- Update checks now read `widgets/sg-haze/version.json` and download `dist/SG Haze.js` from github.com/jkfliu/scriptable-widgets.
+- Time formatting, staleness, the update checker, and the file cache and Keychain helpers now come from the repo's shared code.
+
 ## 1.0.0 (2026-10-24)
 
 First release.

@@ -1,7 +1,7 @@
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const {
-  parsePm25Series, sgtDateStrings, rolling24h, nextRefresh, isStale,
+  parsePm25Series, sgtDateStrings, rolling24h, nextRefresh, STALE_AFTER_MINUTES,
 } = require('../src/core.js');
 const { fixture, sgt, mulberry32 } = require('./helpers.js');
 
@@ -174,29 +174,10 @@ describe('nextRefresh', () => {
   });
 });
 
-describe('isStale', () => {
-  const now = sgt('2026-10-24T15:39:00');
-
-  test('fresh data is not stale', () => {
-    assert.equal(isStale(sgt('2026-10-24T15:00:00'), now), false);
-  });
-
-  test('exactly 2 hours old is not stale; 1 ms more is', () => {
-    assert.equal(isStale(now - 2 * HOUR, now), false);
-    assert.equal(isStale(now - 2 * HOUR - 1, now), true);
-  });
-
-  test('accepts Dates as well as epoch ms', () => {
-    assert.equal(isStale(new Date(now - 3 * HOUR), new Date(now)), true);
-  });
-
-  test('missing or invalid time counts as stale', () => {
-    assert.equal(isStale(null, now), true);
-    assert.equal(isStale(undefined, now), true);
-    assert.equal(isStale(NaN, now), true);
-  });
-
-  test('a time in the future is not stale', () => {
-    assert.equal(isStale(now + HOUR, now), false);
+// isStale moved to shared/time.js with its tests (shared/test/time.test.js).
+describe('STALE_AFTER_MINUTES', () => {
+  test('SG Haze flags readings older than 2 hours as stale', () => {
+    assert.equal(STALE_AFTER_MINUTES, 120);
   });
 });
+

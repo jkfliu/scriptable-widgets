@@ -1,7 +1,7 @@
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const {
-  parsePm25Series, rolling24h, pm25Band, psiBand, chartPoints, chartY, chartBands, formatUpdated, formatChecked,
+  parsePm25Series, rolling24h, pm25Band, psiBand, chartPoints, chartY, chartBands, formatChecked,
 } = require('../src/core.js');
 const { fixture, sgt, mulberry32 } = require('./helpers.js');
 
@@ -227,30 +227,14 @@ describe('chartPoints', () => {
   });
 });
 
-describe('formatUpdated and formatChecked', () => {
-  test('shows the Singapore reading time as h:mmam/pm', () => {
-    assert.equal(formatUpdated(sgt('2026-10-24T15:00:00')), 'Updated 3:00pm');
-    assert.equal(formatUpdated(sgt('2026-10-24T09:05:00')), 'Updated 9:05am');
-  });
-
-  test('handles midnight and noon', () => {
-    assert.equal(formatUpdated(sgt('2026-10-24T00:00:00')), 'Updated 12:00am');
-    assert.equal(formatUpdated(sgt('2026-10-24T12:00:00')), 'Updated 12:00pm');
-  });
-
-  test('uses Singapore time whatever the UTC date', () => {
-    // 16:30 UTC is 00:30 SGT the next day.
-    assert.equal(formatUpdated(new Date('2026-10-24T16:30:00Z')), 'Updated 12:30am');
-  });
-
-  test('formatChecked shows when the widget last refreshed (DECISIONS.md #2)', () => {
+// formatUpdated moved to shared/time.js with its tests (shared/test/time.test.js).
+describe('formatChecked', () => {
+  test('shows when the widget last refreshed (DECISIONS.md #2)', () => {
     assert.equal(formatChecked(sgt('2026-10-24T15:52:40')), 'Checked 3:52pm');
   });
 
   test('returns an empty string for a missing or invalid time', () => {
-    for (const t of [null, undefined, NaN]) {
-      assert.equal(formatUpdated(t), '');
-      assert.equal(formatChecked(t), '');
-    }
+    for (const t of [null, undefined, NaN]) assert.equal(formatChecked(t), '');
   });
 });
+

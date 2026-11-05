@@ -1,14 +1,22 @@
 // Scriptable layer: requests, Keychain, file cache and drawing. Kept thin: logic lives in core.js.
-// Only runs inside Scriptable; tested by hand on the phone. The build strips the require below.
+// Only runs inside Scriptable; tested by hand on the phone. The build strips the requires below.
 const {
   normaliseRegion, parsePm25Series, parseLatestPsi, sgtDateStrings, rolling24h, nextRefresh,
-  isStale, pm25Band, psiBand, chartPoints, chartBands, formatUpdated, formatChecked,
-  compareVersions, parseManifest, shouldCheckForUpdate, updateUrl, isPlausibleUpdate,
+  STALE_AFTER_MINUTES, pm25Band, psiBand, chartPoints, chartBands, formatChecked,
 } = require('./core.js');
+const { isStale, formatUpdated } = require('../../../shared/time.js');
+const {
+  compareVersions, parseManifest, shouldCheckForUpdate, updateUrl, isPlausibleUpdate,
+} = require('../../../shared/update.js');
+const {
+  readJsonFile, writeJsonFile, keychainHas, keychainGet, keychainSet, keychainRemove,
+} = require('../../../shared/storage.js');
 
-// Both set by scripts/build.js from package.json; the repo is fixed in the published script.
+// All set by scripts/build.js from widget.json; the update source is fixed in the published script.
 const VERSION = 'dev';
 const UPDATE_REPO = '';
+const UPDATE_WIDGET = '';
+const UPDATE_SCRIPT = '';
 
 const API_BASE = 'https://api-open.data.gov.sg/v2/real-time/api';
 const HAZE_URL = 'https://www.haze.gov.sg';
@@ -29,7 +37,7 @@ const MUTED = Color.dynamic(new Color('#6e6e73'), new Color('#98989d'));
 async function fetchJson(endpoint, date) {
   const req = new Request(`${API_BASE}/${endpoint}${date ? `?date=${date}` : ''}`);
   req.timeoutInterval = 15;
-  if (Keychain.contains(KEYCHAIN_KEY)) req.headers = { 'x-api-key': Keychain.get(KEYCHAIN_KEY) };
+  if (keychainHas(KEYCHAIN_KEY)) req.headers = { 'x-api-key': keychainGet(KEYCHAIN_KEY) };
   const json = await req.loadJSON();
   const status = req.response.statusCode;
   if (status === 404) return null;
@@ -37,20 +45,6 @@ async function fetchJson(endpoint, date) {
   return json;
 }
 
-function localPath(name) {
-  const fm = FileManager.local();
-  return fm.joinPath(fm.documentsDirectory(), name);
-}
-
-function readJsonFile(name) {
-  try {
-    return JSON.parse(FileManager.local().readString(localPath(name))) ?? {};
-  } catch (e) {
-    return {};
-  }
-}
-
-const writeJsonFile = (name, value) => FileManager.local().writeString(localPath(name), JSON.stringify(value));
 const readCache = () => readJsonFile(CACHE_FILE);
 
 // { series, psi, fetchedAt, failed } for the region, falling back to the cache when a request fails.
@@ -78,7 +72,7 @@ async function loadData(region, now) {
 // --- Updates (on by default; see README "For friends") ---
 
 // null in a dev build (no repo set), which turns all update features off.
-const UPDATE_URLS = updateUrl(UPDATE_REPO);
+const UPDATE_URLS = updateUrl(UPDATE_REPO, UPDATE_WIDGET, UPDATE_SCRIPT);
 
 // Settings: { updateChecks: boolean, lastChecked: ms, latest: { version, notes } }
 // Update checks are on unless turned off in the menu (DECISIONS.md #16).
@@ -155,7 +149,7 @@ function viewModel(region, data, now) {
     pmBand: pm25Band(pm?.value),
     psi,
     psiBand: psiBand(psi?.value),
-    stale: !data || data.failed || isStale(pm?.time, now),
+    stale: !data || data.failed || isStale(pm?.time, now, STALE_AFTER_MINUTES),
     updated: formatUpdated(pm?.time),
     checked: formatChecked(data?.fetchedAt),
     // Footer under the chart: says what the chart shows, then when the reading was taken.
@@ -300,7 +294,7 @@ async function promptForApiKey() {
   a.addCancelAction('Cancel');
   if ((await a.present()) !== 0) return;
   const key = a.textFieldValue(0).trim();
-  if (key) Keychain.set(KEYCHAIN_KEY, key);
+  if (key) keychainSet(KEYCHAIN_KEY, key);
 }
 
 async function showMessage(title, message) {
@@ -351,7 +345,7 @@ async function runInApp(region, now) {
   const data = await loadData(region, now);
   const settings = readSettings();
   for (;;) {
-    const hasKey = Keychain.contains(KEYCHAIN_KEY);
+    const hasKey = keychainHas(KEYCHAIN_KEY);
     const update = showUpdate(settings);
     const menu = new Alert();
     menu.title = 'SG Haze';
@@ -374,7 +368,7 @@ async function runInApp(region, now) {
     for (const [label] of actions) menu.addAction(label);
     if (hasKey) {
       menu.addDestructiveAction('Clear API key');
-      actions.push(['Clear API key', () => Keychain.remove(KEYCHAIN_KEY)]);
+      actions.push(['Clear API key', () => keychainRemove(KEYCHAIN_KEY)]);
     }
     menu.addCancelAction('Done');
     const choice = await menu.presentSheet();

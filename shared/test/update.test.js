@@ -1,9 +1,18 @@
 const { test, describe } = require('node:test');
 const assert = require('node:assert/strict');
 const {
-  compareVersions, parseManifest, shouldCheckForUpdate, updateUrl, isPlausibleUpdate,
-} = require('../src/core.js');
-const { mulberry32 } = require('./helpers.js');
+  compareVersions, parseManifest, shouldCheckForUpdate, updateUrl, isPlausibleUpdate, isVersion, versionLine,
+} = require('../update.js');
+
+// Seeded PRNG for property tests (no fast-check: no dependencies).
+function mulberry32(seed) {
+  return () => {
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
 
 const HOUR = 3600e3;
 
@@ -93,17 +102,46 @@ describe('shouldCheckForUpdate', () => {
 });
 
 describe('updateUrl', () => {
-  test('builds raw GitHub URLs for version.json and the released script on main', () => {
-    assert.deepEqual(updateUrl('jkfliu/sg-haze-widget'), {
-      manifest: 'https://raw.githubusercontent.com/jkfliu/sg-haze-widget/main/version.json',
-      script: 'https://raw.githubusercontent.com/jkfliu/sg-haze-widget/main/release/SG%20Haze.js',
+  test("builds raw GitHub URLs for the widget's version.json and its dist/ script on main", () => {
+    assert.deepEqual(updateUrl('jkfliu/scriptable-widgets', 'sg-haze', 'SG Haze.js'), {
+      manifest: 'https://raw.githubusercontent.com/jkfliu/scriptable-widgets/main/widgets/sg-haze/version.json',
+      script: 'https://raw.githubusercontent.com/jkfliu/scriptable-widgets/main/dist/SG%20Haze.js',
     });
+  });
+
+  test('each widget gets its own paths', () => {
+    const urls = updateUrl('jkfliu/scriptable-widgets', 'market-prices', 'Market Prices.js');
+    assert.match(urls.manifest, /\/widgets\/market-prices\/version\.json$/);
+    assert.match(urls.script, /\/dist\/Market%20Prices\.js$/);
   });
 
   test('returns null for anything that is not owner/repo', () => {
     for (const bad of ['', 'jkfliu', 'jkfliu/', '/repo', 'a/b/c', 'https://github.com/a/b', 'a/b?x=1', 'a b/c', '../x', null]) {
-      assert.equal(updateUrl(bad), null, `input: ${bad}`);
+      assert.equal(updateUrl(bad, 'sg-haze', 'SG Haze.js'), null, `input: ${bad}`);
     }
+  });
+
+  test('returns null for a widget folder that is not a plain folder name', () => {
+    for (const bad of ['', '..', '../x', 'a/b', 'Sg-Haze', ' sg-haze', null, undefined]) {
+      assert.equal(updateUrl('jkfliu/scriptable-widgets', bad, 'SG Haze.js'), null, `widget: ${bad}`);
+    }
+  });
+
+  test('returns null for a script that is not a plain .js filename', () => {
+    for (const bad of ['', '.js', 'SG Haze', 'a/SG Haze.js', '../SG Haze.js', null, undefined]) {
+      assert.equal(updateUrl('jkfliu/scriptable-widgets', 'sg-haze', bad), null, `output: ${bad}`);
+    }
+  });
+});
+
+describe('isVersion and versionLine', () => {
+  test('isVersion accepts plain x.y.z only', () => {
+    assert.equal(isVersion('1.10.0'), true);
+    for (const bad of ['1.2', 'v1.2.3', '01.2.3', 'dev', null]) assert.equal(isVersion(bad), false, `input: ${bad}`);
+  });
+
+  test('versionLine is the line the build writes', () => {
+    assert.equal(versionLine('1.2.3'), "const VERSION = '1.2.3';");
   });
 });
 

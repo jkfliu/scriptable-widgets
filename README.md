@@ -51,13 +51,23 @@ Each widget's `widget.json` drives its build:
 {
   "name": "SG Haze",
   "output": "SG Haze.js",
-  "version": "1.0.0",
-  "shared": [],
+  "version": "1.1.0",
+  "shared": ["time", "update", "storage"],
   "icon": { "color": "blue", "glyph": "smog" },
-  "updateRepo": "jkfliu/sg-haze-widget"
+  "updateRepo": "jkfliu/scriptable-widgets"
 }
 ```
 
-`shared` lists modules from `shared/` (without `.js`) to include, in order. `icon` sets Scriptable's icon header. `updateRepo` is optional and fills in `UPDATE_REPO` in the widget.
+`shared` lists modules from `shared/` (without `.js`) to include, in order: a module must come after any shared module it requires, and the build fails if a widget requires one it doesn't list. `icon` sets Scriptable's icon header. `updateRepo` is optional; when set, the build fills in `UPDATE_REPO`, `UPDATE_WIDGET` (the widget's folder) and `UPDATE_SCRIPT` (its output) in `widget.js`, and the update checker then reads `widgets/<folder>/version.json` and `dist/<output>` from that repo's `main`.
+
+## Shared modules
+
+| Module | What it provides |
+|--------|------------------|
+| `shared/time.js` | `isStale(latestTime, now, maxAgeMinutes)`, `formatUpdated(time)` ("Updated 3:15pm", Singapore time), `formatSgtTime`, `toMs`, `HOUR`, `DAY`, `SGT_OFFSET` |
+| `shared/update.js` | `compareVersions`, `parseManifest`, `shouldCheckForUpdate`, `updateUrl(repo, widget, script)`, `isPlausibleUpdate`, `isVersion`, `versionLine` (requires `time`) |
+| `shared/storage.js` | Thin Scriptable wrappers: `readJsonFile`, `writeJsonFile`, `keychainHas`, `keychainGet`, `keychainSet`, `keychainRemove` |
+
+Each has tests in `shared/test/`. In Node, widgets require them as `require('../../../shared/<name>.js')`; the build strips those lines and puts the modules first in the bundle.
 
 After changing any widget source, run `npm run build` and commit `dist/`: a test checks that the committed `dist/` matches a fresh build.
