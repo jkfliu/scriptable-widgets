@@ -45,7 +45,9 @@ README.md
 - [x] AGENTS.md with the TDD rules; CLAUDE.md imports it
 - [x] README describing the layout
 
-### Phase 1: Move SG Haze in
+### Phase 1: Move SG Haze in ✅ Done
+Imported from jkfliu/sg-haze-widget with git filter-repo (full history kept). 153 tests pass, 1 live test skipped; the build is byte-identical to the old repo's.
+
 - Import my sg-haze GitHub repo into widgets/sg-haze/ with its git history preserved (e.g. git subtree add or git filter-repo). Ask me for the repo name if needed, and propose the method before doing it.
 - Update paths so its tests pass in the new location with no logic changes.
 - Use its existing build script for now, or a temporary version adapted to the new paths.
