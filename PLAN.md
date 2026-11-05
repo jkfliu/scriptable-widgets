@@ -183,7 +183,9 @@ Request planning, quote collection, rows, cache (per-crypto-currency keys, 7-day
   - set or clear the CoinGecko key
   - a help screen explaining the parameter format
 
-### Phase 9: Market Prices — release
+### Phase 9: Market Prices — release ✅ Done
+scripts/release.sh <widget> <version> "<notes>" works for any widget (also replacing SG Haze's old release script); test/release.test.js runs it on a copy of the repo, with RELEASE_TEST_CMD standing in for npm test. Market Prices released as 1.0.0 with version.json, CHANGELOG.md and its own README; the root README lists both widgets.
+
 - Add widget.json, version.json and CHANGELOG.md.
 - Add a README section covering:
   - adding the widget, with small and medium examples

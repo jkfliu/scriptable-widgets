@@ -2,9 +2,12 @@
 
 iOS widgets for [Scriptable](https://scriptable.app), kept in one repo with shared code and one build setup. Each widget still builds into its own single-file script in `dist/`, so it can be shared and versioned on its own.
 
-Widgets (planned, see [PLAN.md](PLAN.md)):
-- **SG Haze**: moved in from the old `sg-haze` repo
-- **Market Prices**: FX, stocks and crypto prices
+| Widget | What it shows | Script | Details |
+|--------|---------------|--------|---------|
+| **SG Haze** | Singapore PM2.5 and PSI for one region, with a 24-hour chart | [`dist/SG Haze.js`](dist/SG%20Haze.js) | [widgets/sg-haze](widgets/sg-haze/README.md) |
+| **Market Prices** | FX rates, stock and index prices, and crypto prices | [`dist/Market Prices.js`](dist/Market%20Prices.js) | [widgets/market-prices](widgets/market-prices/README.md) |
+
+To install one on your phone, open its script on GitHub, tap **Raw**, copy it all, and paste it into a new Scriptable script with the widget's name. Each widget's README has the details. [PLAN.md](PLAN.md) has the history of how the repo was built.
 
 ## Layout
 
@@ -43,7 +46,16 @@ npm run build                     # build all widgets into dist/
 node scripts/build.js <widget>    # build one widget, e.g. sg-haze
 npm run deploy                    # Mac only: build, then copy dist/ to iCloud Scriptable
 node scripts/check-secrets.js <file>   # scan a file for keys and personal data
+sh scripts/release.sh <widget> <version> "<notes>"   # release one widget
 ```
+
+### Releasing a widget
+
+```sh
+sh scripts/release.sh market-prices 1.0.1 "Fixes the closed marker"
+```
+
+This checks the version is newer than the widget's last release, runs all tests, sets the version in its `widget.json`, builds only that widget into `dist/`, scans the bundle for secrets, and writes its `version.json`. It stops before changing anything if a check or test fails. Then add a CHANGELOG entry, commit, tag (`market-prices-v1.0.1`) and push. Widgets with update checks (SG Haze) offer the new version once it's on `main`.
 
 Each widget's `widget.json` drives its build:
 

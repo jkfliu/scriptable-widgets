@@ -531,7 +531,7 @@ const HELP_TEXT = [
 // The build strips the requires below.
 
 // Set by scripts/build.js from widget.json.
-const VERSION = '0.1.0';
+const VERSION = '1.0.0';
 
 const KEYCHAIN_KEY = 'market-prices.coingecko-key';
 const CACHE_FILE = 'market-prices-cache.json';
