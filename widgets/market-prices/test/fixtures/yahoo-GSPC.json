@@ -1,0 +1,137 @@
+{
+  "chart": {
+    "result": [
+      {
+        "meta": {
+          "currency": "USD",
+          "symbol": "^GSPC",
+          "exchangeName": "SNP",
+          "fullExchangeName": "SNP",
+          "instrumentType": "INDEX",
+          "firstTradeDate": -1325583000,
+          "regularMarketTime": 1793829071,
+          "hasPrePostMarketData": false,
+          "gmtoffset": -18000,
+          "timezone": "EST",
+          "exchangeTimezoneName": "America/New_York",
+          "regularMarketPrice": 7688.62,
+          "regularMarketChangePercent": 1.581,
+          "fulldayPrice": 7688.62,
+          "fulldayChange": 119.7,
+          "fulldayChangePercent": 1.581,
+          "fiftyTwoWeekHigh": 7844.52,
+          "fiftyTwoWeekLow": 6316.91,
+          "regularMarketDayHigh": 7715.57,
+          "regularMarketDayLow": 7635.81,
+          "regularMarketVolume": 4562882000,
+          "longName": "S&P 500",
+          "shortName": "S&P 500",
+          "chartPreviousClose": 7568.92,
+          "previousClose": 7568.92,
+          "scale": 3,
+          "priceHint": 2,
+          "currentTradingPeriod": {
+            "pre": {
+              "timezone": "EST",
+              "start": 1793782800,
+              "end": 1793802600,
+              "gmtoffset": -18000
+            },
+            "regular": {
+              "timezone": "EST",
+              "start": 1793802600,
+              "end": 1793826000,
+              "gmtoffset": -18000
+            },
+            "post": {
+              "timezone": "EST",
+              "start": 1793826000,
+              "end": 1793840400,
+              "gmtoffset": -18000
+            }
+          },
+          "tradingPeriods": [
+            [
+              {
+                "timezone": "EST",
+                "start": 1793802600,
+                "end": 1793826000,
+                "gmtoffset": -18000
+              }
+            ]
+          ],
+          "dataGranularity": "1m",
+          "range": "1d",
+          "validRanges": [
+            "1d",
+            "5d",
+            "1mo",
+            "3mo",
+            "6mo",
+            "1y",
+            "2y",
+            "5y",
+            "10y",
+            "ytd",
+            "max"
+          ]
+        },
+        "timestamp": [
+          1793802600,
+          1793802660,
+          1793802720,
+          1793825880,
+          1793825940,
+          1793826000
+        ],
+        "indicators": {
+          "quote": [
+            {
+              "open": [
+                7635.81005859375,
+                7658.33984375,
+                7663.10986328125,
+                7687.91015625,
+                7689.18994140625,
+                7688.6201171875
+              ],
+              "high": [
+                7660.35986328125,
+                7666.85009765625,
+                7665.2001953125,
+                7690.33984375,
+                7691.509765625,
+                7688.6201171875
+              ],
+              "low": [
+                7635.81005859375,
+                7655.93994140625,
+                7655.22998046875,
+                7687.25,
+                7688.72998046875,
+                7688.6201171875
+              ],
+              "close": [
+                7658.740234375,
+                7663.85986328125,
+                7655.22998046875,
+                7689.240234375,
+                7688.72998046875,
+                7688.6201171875
+              ],
+              "volume": [
+                0,
+                26366692,
+                25048043,
+                65951000,
+                107189000,
+                0
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "error": null
+  }
+}

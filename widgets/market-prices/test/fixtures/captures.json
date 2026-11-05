@@ -19,5 +19,12 @@
     "status": 200,
     "capturedAt": "2026-11-05T01:41:43.000Z",
     "source": "Copied from Safari on the iPhone and pasted into the session, because Yahoo refuses this cloud session. capturedAt is approximate: the response's regularMarketTime, or the paste time if there is none."
+  },
+  "yahoo-GSPC.json": {
+    "url": "https://query1.finance.yahoo.com/v8/finance/chart/%5EGSPC",
+    "status": 200,
+    "capturedAt": "2026-11-04T21:51:11.000Z",
+    "source": "Copied from Safari on the iPhone and pasted into the session, because Yahoo refuses this cloud session. capturedAt is approximate: the response's regularMarketTime, or the paste time if there is none.",
+    "trimmed": "The per-minute arrays (timestamp and indicators.quote[0].*) are cut to their first 3 and last 3 of 391 entries; meta is exactly as received."
   }
 }
