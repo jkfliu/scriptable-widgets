@@ -40,6 +40,13 @@
     "capturedAt": "2026-11-05",
     "source": "Copied from Safari on the iPhone and pasted into the session, because Yahoo refuses this cloud session. capturedAt is approximate: the response's regularMarketTime, or the paste time if there is none."
   },
+  "yahoo-SGDJPY.json": {
+    "url": "https://query1.finance.yahoo.com/v8/finance/chart/SGDJPY=X",
+    "status": "not known (copied from Safari, which does not show it)",
+    "capturedAt": "2026-11-05T02:14:47.000Z",
+    "source": "Copied from Safari on the iPhone and pasted into the session, because Yahoo refuses this cloud session. capturedAt is approximate: the response's regularMarketTime, or the paste time if there is none.",
+    "trimmed": "The per-minute arrays (timestamp and indicators.quote[0].*) are cut to their first 3 and last 4 of 136 entries, keeping both null rows near the end; meta is exactly as received."
+  },
   "yahoo-USDSGD.json": {
     "url": "https://query1.finance.yahoo.com/v8/finance/chart/USDSGD=X",
     "status": "not known (copied from Safari, which does not show it)",
