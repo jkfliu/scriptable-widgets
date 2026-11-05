@@ -1,0 +1,17 @@
+{
+  "coingecko-invalid.json": {
+    "url": "https://api.coingecko.com/api/v3/simple/price?ids=notarealcoin123&vs_currencies=usd&include_24hr_change=true",
+    "status": 200,
+    "capturedAt": "2026-11-05T01:21:31.355Z"
+  },
+  "coingecko-sgd.json": {
+    "url": "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=sgd&include_24hr_change=true",
+    "status": 200,
+    "capturedAt": "2026-11-05T01:21:31.242Z"
+  },
+  "coingecko-usd.json": {
+    "url": "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd&include_24hr_change=true",
+    "status": 200,
+    "capturedAt": "2026-11-05T01:21:31.115Z"
+  }
+}
