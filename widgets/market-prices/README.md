@@ -15,6 +15,8 @@ This uses Scriptable's folder in iCloud Drive, so iCloud Drive needs to be on fo
 
 **To update later**, download it the same way and choose **Replace** when Files asks. Your widgets, Parameters, saved prices and CoinGecko key all stay as they are.
 
+**Is there a new version?** The widget doesn't check for updates by itself. To see which version you have, run the script in Scriptable: the menu shows it at the top. The latest version and what changed are in [CHANGELOG.md](CHANGELOG.md).
+
 **Or copy and paste:** if the download doesn't work for you, open [`dist/Market Prices.js`](https://github.com/jkfliu/scriptable-widgets/blob/main/dist/Market%20Prices.js) on GitHub, tap **Raw**, and copy all of it. In Scriptable, tap **+**, paste, then tap the title at the top and rename the script **Market Prices**.
 
 ## Add the widget
