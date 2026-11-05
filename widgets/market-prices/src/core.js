@@ -224,7 +224,81 @@ function direction(item) {
   return delta > 0 ? 'up' : 'down';
 }
 
+// --- Labels and formatting ---
+
+// Rows (label, space, price, arrow) for typical items fit in this many characters, a first
+// estimate for a one-third-width column of the medium widget. To be checked on the phone.
+const COLUMN_MAX_CHARS = 18;
+
+// Short names for common indices. Others just lose their ^.
+const INDEX_NAMES = new Map([
+  ['^GSPC', 'S&P 500'], ['^STI', 'STI'], ['^AXJO', 'ASX 200'],
+  ['^DJI', 'Dow'], ['^IXIC', 'Nasdaq'], ['^N225', 'Nikkei'],
+]);
+
+// The text for an item's label: USD/SGD, D05, S&P 500, BTC.
+function label(item) {
+  const symbol = typeof item?.symbol === 'string' ? item.symbol : '';
+  if (item?.type === 'fx') return /^[A-Z]{6}$/.test(symbol) ? `${symbol.slice(0, 3)}/${symbol.slice(3)}` : symbol;
+  if (item?.type === 'stocks') {
+    if (symbol.startsWith('^')) return INDEX_NAMES.get(symbol) ?? symbol.slice(1);
+    return symbol.replace(/\.[A-Z]{1,4}$/, '');
+  }
+  if (item?.type === 'crypto') return symbol.toUpperCase();
+  return symbol;
+}
+
+// Rounds half away from zero at dp decimal places, avoiding binary float surprises (1.005 -> 1.01).
+function roundTo(value, dp) {
+  const abs = Math.abs(value);
+  const text = String(abs);
+  const rounded = text.includes('e')
+    ? Math.round(abs * 10 ** dp) / 10 ** dp
+    : Number(`${Math.round(Number(`${text}e${dp}`))}e-${dp}`);
+  return rounded === 0 ? 0 : Math.sign(value) * rounded;
+}
+
+// A number with exactly dp decimals and comma thousands separators, whatever the phone's region.
+function fixed(value, dp) {
+  const rounded = roundTo(value, dp);
+  const [whole, fraction] = Math.abs(rounded).toFixed(dp).split('.');
+  const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return `${rounded < 0 ? '-' : ''}${grouped}${fraction ? `.${fraction}` : ''}`;
+}
+
+// Crypto: 2 significant digits under 1, whole numbers up to 99,999, then K, M or B with one decimal.
+function formatCrypto(value) {
+  const abs = Math.abs(value);
+  const sign = value < 0 ? '-' : '';
+  if (abs === 0) return '0';
+  if (abs < 1) {
+    const dp = 1 - Math.floor(Math.log10(abs));
+    if (roundTo(abs, dp) < 1) return sign + fixed(abs, dp);
+  }
+  if (Math.round(abs) < 100000) return sign + fixed(abs, 0);
+  const units = [['K', 1e3], ['M', 1e6], ['B', 1e9]];
+  for (let i = 0; i < units.length; i++) {
+    const [unit, size] = units[i];
+    const scaled = roundTo(abs / size, 1);
+    if (scaled < 1000 || i === units.length - 1) return `${sign}${fixed(scaled, Number.isInteger(scaled) ? 0 : 1)}${unit}`;
+  }
+  return '';
+}
+
+// The price text for a row, with no currency symbol or code. — when there is no number.
+function formatPrice(value, type, symbol, currency) {
+  if (finite(value) === null) return '—';
+  if (type === 'crypto') return formatCrypto(value);
+  if (type === 'fx') {
+    const quote = typeof symbol === 'string' && /^[A-Z]{6}$/.test(symbol) ? symbol.slice(3) : currency;
+    return fixed(value, quote === 'JPY' ? 2 : 4);
+  }
+  if (type === 'stocks' && currency === 'JPY') return fixed(value, 0);
+  return fixed(value, 2);
+}
+
 module.exports = {
   parseParameter, defaultParameter, resolveParameter, smallItems, columnsFor, toYahooSymbol, toCoinGeckoId,
   parseYahooChart, parseCoinGecko, direction,
+  label, formatPrice, COLUMN_MAX_CHARS,
 };

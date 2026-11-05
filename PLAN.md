@@ -141,7 +141,9 @@ parseYahooChart(json, now) also takes now, for marketOpen: now within currentTra
 - direction(item) returns up, down or flat, using the previous close for FX and stocks and the 24-hour change for crypto.
 - Missing fields, nulls and error responses should produce an "unavailable" item rather than a crash.
 
-### Phase 7: Market Prices — labels and formatting (tests first)
+### Phase 7: Market Prices — labels and formatting (tests first) ✅ Done
+label(item) takes { type, symbol }; extra index names ^DJI Dow, ^IXIC Nasdaq, ^N225 Nikkei (^HSI stays HSI to fit). formatPrice rounds half away from zero with US-style separators whatever the phone's region; FX gets separators too; a crypto value that rounds up to 1 or 100,000 uses the next rule; B after M. COLUMN_MAX_CHARS = 18 (label, space, price, arrow), a first estimate to check on the phone in Phase 8.
+
 - label(item):
   - FX: USDSGD becomes USD/SGD
   - stocks: drop the exchange suffix, e.g. D05.SI becomes D05
