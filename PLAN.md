@@ -133,7 +133,9 @@ Tests:
 - small with fewer than 5 items in total
 - a parameter with no valid items falls back to the default
 
-### Phase 6: Market Prices — responses (tests first)
+### Phase 6: Market Prices — responses (tests first) ✅ Done
+parseYahooChart(json, now) also takes now, for marketOpen: now within currentTradingPeriod.regular [start, end), or null if unknown. Unavailable items are { available: false, reason }. Both parsers accept JSON text or parsed JSON; parseCoinGecko returns a Map. direction uses change24h when the item has it, else price vs previous close.
+
 - parseYahooChart(json) returns { price, previousClose, time, marketOpen, currency }.
 - parseCoinGecko(json, ids, currency) returns a map of ID to { price, change24h }.
 - direction(item) returns up, down or flat, using the previous close for FX and stocks and the 24-hour change for crypto.

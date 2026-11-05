@@ -1,4 +1,6 @@
 // Pure logic for the Market Prices widget. No Scriptable APIs here: everything is tested under Node.
+// The build strips the require below; shared/time.js comes before this file in the bundle.
+const { toMs } = require('../../../shared/time.js');
 
 // --- Parameter ---
 // Format: fx:USDSGD,SGD/JPY | stocks:D05.SI,^GSPC | crypto:btc,eth | cur:usd
@@ -139,6 +141,90 @@ function toCoinGeckoId(symbol) {
   return COINGECKO_IDS.get(s) ?? s;
 }
 
+// --- Responses ---
+// Shapes are documented in test/fixtures/README.md. Anything missing or malformed gives an
+// unavailable item, { available: false, reason }, never a throw.
+
+const finite = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+const has = (obj, key) => obj !== null && typeof obj === 'object' && Object.hasOwn(obj, key);
+const unavailable = (reason) => ({ available: false, reason });
+
+// The parsed value of a response given as JSON text or already parsed; { error } if the text isn't JSON.
+function readResponse(json) {
+  if (typeof json !== 'string') return { data: json };
+  try {
+    return { data: JSON.parse(json) };
+  } catch (e) {
+    return { error: 'The response was not valid JSON.' };
+  }
+}
+
+// One Yahoo chart response to { available, price, previousClose, time, marketOpen, currency }.
+// time is the last trade in epoch ms. marketOpen compares now with the regular session
+// [start, end); it is null when the session or now is unknown.
+function parseYahooChart(json, now) {
+  const { data, error } = readResponse(json);
+  if (error) return unavailable(error);
+  const meta = data?.chart?.result?.[0]?.meta;
+  if (!meta || typeof meta !== 'object') {
+    const description = data?.chart?.error?.description;
+    return unavailable(typeof description === 'string' ? description : 'The response had no data.');
+  }
+  const price = finite(meta.regularMarketPrice);
+  if (price === null) return unavailable('The response had no price.');
+
+  const time = finite(meta.regularMarketTime);
+  const regular = meta.currentTradingPeriod?.regular;
+  const [start, end, nowMs] = [finite(regular?.start), finite(regular?.end), finite(toMs(now))];
+  const marketOpen = start === null || end === null || nowMs === null ? null : nowMs >= start * 1000 && nowMs < end * 1000;
+
+  return {
+    available: true,
+    price,
+    previousClose: finite(meta.previousClose) ?? finite(meta.chartPreviousClose),
+    time: time === null ? null : time * 1000,
+    marketOpen,
+    currency: typeof meta.currency === 'string' && meta.currency ? meta.currency : null,
+  };
+}
+
+// A CoinGecko simple/price response to a Map of ID to { available, price, change24h },
+// with one entry per requested ID, in order. change24h is the 24-hour change in %, or null.
+function parseCoinGecko(json, ids, currency) {
+  const { data } = readResponse(json);
+  const body = data && typeof data === 'object' && !Array.isArray(data) ? data : null;
+  const cur = typeof currency === 'string' ? currency.toLowerCase() : '';
+  const result = new Map();
+  for (const id of ids ?? []) {
+    if (result.has(id)) continue;
+    const entry = has(body, id) ? body[id] : null;
+    const price = cur && has(entry, cur) ? finite(entry[cur]) : null;
+    if (price === null) {
+      result.set(id, unavailable(entry ? `No ${cur || 'currency'} price for ${id}.` : `No data for ${id}.`));
+      continue;
+    }
+    const changeKey = `${cur}_24h_change`;
+    result.set(id, { available: true, price, change24h: has(entry, changeKey) ? finite(entry[changeKey]) : null });
+  }
+  return result;
+}
+
+// 'up', 'down' or 'flat'. Crypto items (which carry change24h) use the 24-hour change;
+// FX and stocks compare the price with the previous close. Unavailable or incomplete items are flat.
+function direction(item) {
+  if (!item || typeof item !== 'object' || item.available !== true) return 'flat';
+  let delta = null;
+  if (has(item, 'change24h')) {
+    delta = finite(item.change24h);
+  } else {
+    const [price, previous] = [finite(item.price), finite(item.previousClose)];
+    if (price !== null && previous !== null) delta = price - previous;
+  }
+  if (delta === null || delta === 0) return 'flat';
+  return delta > 0 ? 'up' : 'down';
+}
+
 module.exports = {
   parseParameter, defaultParameter, resolveParameter, smallItems, columnsFor, toYahooSymbol, toCoinGeckoId,
+  parseYahooChart, parseCoinGecko, direction,
 };
