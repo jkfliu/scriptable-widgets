@@ -266,16 +266,26 @@ function fixed(value, dp) {
   return `${rounded < 0 ? '-' : ''}${grouped}${fraction ? `.${fraction}` : ''}`;
 }
 
-// Crypto: 2 significant digits under 1, whole numbers up to 99,999, then K, M or B with one decimal.
+// Crypto bands: [upper limit, decimal places for a value in the band]. Under 1, 2 significant digits.
+const CRYPTO_BANDS = [
+  [1, (v) => 1 - Math.floor(Math.log10(v))],
+  [10, () => 3],
+  [100, () => 2],
+  [100000, () => 0],
+];
+
+// Crypto: 2 significant digits under 1, 3 decimals under 10, 2 under 100, whole numbers up to
+// 99,999, then K, M or B with one decimal. A value that rounds up to a band's limit uses the next band.
 function formatCrypto(value) {
-  const abs = Math.abs(value);
   const sign = value < 0 ? '-' : '';
+  let abs = Math.abs(value);
   if (abs === 0) return '0';
-  if (abs < 1) {
-    const dp = 1 - Math.floor(Math.log10(abs));
-    if (roundTo(abs, dp) < 1) return sign + fixed(abs, dp);
+  for (const [limit, places] of CRYPTO_BANDS) {
+    if (abs >= limit) continue;
+    const dp = places(abs);
+    if (roundTo(abs, dp) < limit) return sign + fixed(abs, dp);
+    abs = limit;
   }
-  if (Math.round(abs) < 100000) return sign + fixed(abs, 0);
   const units = [['K', 1e3], ['M', 1e6], ['B', 1e9]];
   for (let i = 0; i < units.length; i++) {
     const [unit, size] = units[i];

@@ -101,19 +101,32 @@ describe('formatPrice: crypto', () => {
     assert.equal(formatPrice(0.00001234, 'crypto', 'shib', 'usd'), '0.000012');
   });
 
-  test('from 1 up to 99,999: whole numbers with separators', () => {
-    assert.equal(formatPrice(1, 'crypto', 'x', 'usd'), '1');
-    assert.equal(formatPrice(95.29, 'crypto', 'sol', 'usd'), '95');
+  test('from 1 to under 10: 3 decimal places', () => {
+    assert.equal(formatPrice(1, 'crypto', 'x', 'usd'), '1.000');
+    assert.equal(formatPrice(2.3412, 'crypto', 'xrp', 'usd'), '2.341');
+    assert.equal(formatPrice(9.999, 'crypto', 'x', 'usd'), '9.999');
+  });
+
+  test('from 10 to under 100: 2 decimal places', () => {
+    assert.equal(formatPrice(10, 'crypto', 'x', 'usd'), '10.00');
+    assert.equal(formatPrice(95.29, 'crypto', 'sol', 'usd'), '95.29');
+    assert.equal(formatPrice(99.99, 'crypto', 'x', 'usd'), '99.99');
+  });
+
+  test('from 100 up to 99,999: whole numbers with separators', () => {
+    assert.equal(formatPrice(100, 'crypto', 'x', 'usd'), '100');
     assert.equal(formatPrice(2411.69, 'crypto', 'eth', 'usd'), '2,412');
     assert.equal(formatPrice(80303, 'crypto', 'btc', 'usd'), '80,303');
     assert.equal(formatPrice(99999, 'crypto', 'btc', 'usd'), '99,999');
   });
 
-  test('the 1 boundary: just under 1 keeps decimals; 1, or a value that rounds up to it, does not', () => {
+  test('a value that rounds up to the next band uses that band: 1, 10 and 100', () => {
     assert.equal(formatPrice(0.99, 'crypto', 'x', 'usd'), '0.99');
-    assert.equal(formatPrice(0.995, 'crypto', 'x', 'usd'), '1');
-    assert.equal(formatPrice(0.999, 'crypto', 'x', 'usd'), '1');
-    assert.equal(formatPrice(1.4, 'crypto', 'x', 'usd'), '1');
+    assert.equal(formatPrice(0.995, 'crypto', 'x', 'usd'), '1.000');
+    assert.equal(formatPrice(9.9994, 'crypto', 'x', 'usd'), '9.999');
+    assert.equal(formatPrice(9.9996, 'crypto', 'x', 'usd'), '10.00');
+    assert.equal(formatPrice(99.994, 'crypto', 'x', 'usd'), '99.99');
+    assert.equal(formatPrice(99.996, 'crypto', 'x', 'usd'), '100');
   });
 
   test('above 99,999: K with one decimal, dropping .0', () => {
@@ -188,6 +201,7 @@ describe('fits a one-third-width column', () => {
     ['crypto', 'btc', 102545, 'sgd'],
     ['crypto', 'eth', 2411.69, 'usd'],
     ['crypto', 'sol', 95.29, 'usd'],
+    ['crypto', 'xrp', 2.3412, 'usd'],
     ['crypto', 'doge', 0.1734, 'usd'],
   ];
 
