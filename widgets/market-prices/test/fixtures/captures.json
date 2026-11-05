@@ -13,5 +13,11 @@
     "url": "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd&include_24hr_change=true",
     "status": 200,
     "capturedAt": "2026-11-05T01:21:31.115Z"
+  },
+  "yahoo-D05.SI.json": {
+    "url": "https://query1.finance.yahoo.com/v8/finance/chart/D05.SI",
+    "status": 200,
+    "capturedAt": "2026-11-05T01:41:43.000Z",
+    "source": "Copied from Safari on the iPhone and pasted into the session, because Yahoo refuses this cloud session. capturedAt is approximate: the response's regularMarketTime, or the paste time if there is none."
   }
 }
