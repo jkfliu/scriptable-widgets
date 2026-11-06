@@ -277,7 +277,15 @@ describe('columnMetrics', () => {
 
   test('every column in a layout is the same width', () => {
     const m = columnMetrics('medium', 3);
-    assert.ok(m.columnWidth > 90 && m.columnWidth < 100, `three columns of ${m.columnWidth} pt`);
+    assert.ok(m.columnWidth > 100 && m.columnWidth < 110, `three columns of ${m.columnWidth} pt`);
+  });
+
+  test('tight margins: 8 pt each side, 2 pt either side of a divider; content is the widget width less padding', () => {
+    const medium = columnMetrics('medium', 3);
+    assert.deepEqual(medium.padding, { top: 12, side: 8, bottom: 10 });
+    assert.equal(medium.dividerGap, 2);
+    assert.equal(medium.contentWidth, 338 - 2 * 8);
+    assert.equal(columnMetrics('small', 1).contentWidth, 158 - 2 * 8);
   });
 
   test('typical labels and prices fit their slots at the chosen size (estimated character widths)', () => {
@@ -289,8 +297,11 @@ describe('columnMetrics', () => {
     for (const l of ['S&P 500', 'ASX 200', 'USD/SGD', 'SGD/AUD', 'SGD/JPY', 'Nasdaq']) {
       assert.ok(width(l, m.fontSize) <= m.labelWidth, `${l}: ${width(l, m.fontSize)} > ${m.labelWidth}`);
     }
+    // On the phone, prices came out about 25% wider than these estimates: at 10 pt they fit a
+    // 51.7 pt slot, at 10.5 pt they did not fit 48.7 pt (1.1.1). Labels matched the estimates.
+    const PRICE_CALIBRATION = 1.25;
     for (const p of ['7,689', '8,812', '47,123', '23,457', '123.68', '166.26', '1.2770', '102.5K', '80,303']) {
-      const w = width(p, m.fontSize) + m.arrowWidth;
+      const w = (width(p, m.fontSize) + m.arrowWidth) * PRICE_CALIBRATION;
       assert.ok(w <= m.priceWidth, `${p}: ${w} > ${m.priceWidth}`);
     }
   });

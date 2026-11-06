@@ -1,7 +1,7 @@
 {
   "name": "Market Prices",
   "output": "Market Prices.js",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "shared": [
     "time",
     "update",

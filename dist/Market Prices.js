@@ -555,22 +555,24 @@ function layoutFor(family, parsed) {
 
 const refreshAfter = (now) => new Date(toMs(now) + REFRESH_MINUTES * 60e3);
 
-// Content widths in points for a 6.1" iPhone, with the widget's padding taken off.
-const CONTENT_WIDTH = { small: 134, medium: 314 };
-const DIVIDER_GAP = 4; // space either side of a divider
+// Widget widths in points for a 6.1" iPhone, and the padding inside them (kept tight for room).
+const WIDGET_WIDTH = { small: 158, medium: 338 };
+const PADDING = { top: 12, side: 8, bottom: 10 };
+const DIVIDER_GAP = 2; // space either side of a divider
 const DIVIDER_WIDTH = 1;
-const LABEL_SHARE = 0.51; // of a column, for the label; the rest is for the price and arrow
+const LABEL_SHARE = 0.48; // of a column, for the label; the rest is for the price and arrow
 
 // Fixed sizes for a layout, so every label and price in a widget uses one font size and never
 // shrinks: 10.5 pt with three columns, 11 pt otherwise. Columns, gaps and dividers fill the width.
 function columnMetrics(family, columnCount) {
   const n = Math.max(1, columnCount | 0);
-  const contentWidth = family === 'small' ? CONTENT_WIDTH.small : CONTENT_WIDTH.medium;
+  const contentWidth = (family === 'small' ? WIDGET_WIDTH.small : WIDGET_WIDTH.medium) - 2 * PADDING.side;
   const columnWidth = (contentWidth - (n - 1) * (2 * DIVIDER_GAP + DIVIDER_WIDTH)) / n;
   const fontSize = n >= 3 ? 10.5 : 11;
   const arrowFontSize = fontSize - 3;
   const labelWidth = Math.round(columnWidth * LABEL_SHARE);
   return {
+    padding: { ...PADDING },
     contentWidth,
     columnWidth,
     dividerGap: DIVIDER_GAP,
@@ -627,7 +629,7 @@ const updateAvailable = (settings, version) =>
 // The build strips the requires below.
 
 // All set by scripts/build.js from widget.json; the update source is fixed in the published script.
-const VERSION = '1.1.1';
+const VERSION = '1.1.2';
 const UPDATE_REPO = 'jkfliu/scriptable-widgets';
 const UPDATE_WIDGET = 'market-prices';
 const UPDATE_SCRIPT = 'Market Prices.js';
@@ -701,11 +703,13 @@ function addRow(column, row, m) {
   const line = column.addStack();
   line.layoutHorizontally();
   line.centerAlignContent();
+  line.spacing = 0;
   line.size = new Size(m.columnWidth, ROW_HEIGHT);
   const opacity = row.dimmed ? DIMMED : 1;
 
   const left = line.addStack();
   left.layoutVertically();
+  left.spacing = 0;
   left.size = new Size(m.labelWidth, ROW_HEIGHT);
   addText(left, row.label, Font.semiboldSystemFont(m.fontSize), FG, opacity);
   if (row.closed) addText(left, 'closed', Font.systemFont(7), MUTED);
@@ -713,6 +717,7 @@ function addRow(column, row, m) {
   const right = line.addStack();
   right.layoutHorizontally();
   right.centerAlignContent();
+  right.spacing = 0;
   right.size = new Size(m.priceWidth, ROW_HEIGHT);
   right.addSpacer();
   const colour = TONES[row.tone] ?? MUTED;
@@ -736,12 +741,12 @@ function buildWidget(family, columns, rows, updatedAt, now, update) {
   w.backgroundColor = BG;
   w.url = OPEN_URL;
   w.refreshAfterDate = refreshAfter(now);
-  w.setPadding(12, 12, 10, 12);
+  const m = columnMetrics(family, columns.length);
+  w.setPadding(m.padding.top, m.padding.side, m.padding.bottom, m.padding.side);
 
   const body = w.addStack();
   body.layoutHorizontally();
   body.topAlignContent();
-  const m = columnMetrics(family, columns.length);
   const height = Math.max(...columns.map((c) => c.length)) * ROW_HEIGHT;
   let next = 0;
   columns.forEach((items, i) => {

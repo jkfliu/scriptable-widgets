@@ -31,7 +31,7 @@ class WidgetStack {
     this.vertical = false;
     this.align = null;
     this.size = null;
-    this.spacing = 0;
+    this.spacing = null; // Scriptable's default spacing is not known, so the widget must set it
   }
   layoutVertically() { this.vertical = true; }
   layoutHorizontally() { this.vertical = false; }

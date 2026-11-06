@@ -86,11 +86,13 @@ function addRow(column, row, m) {
   const line = column.addStack();
   line.layoutHorizontally();
   line.centerAlignContent();
+  line.spacing = 0;
   line.size = new Size(m.columnWidth, ROW_HEIGHT);
   const opacity = row.dimmed ? DIMMED : 1;
 
   const left = line.addStack();
   left.layoutVertically();
+  left.spacing = 0;
   left.size = new Size(m.labelWidth, ROW_HEIGHT);
   addText(left, row.label, Font.semiboldSystemFont(m.fontSize), FG, opacity);
   if (row.closed) addText(left, 'closed', Font.systemFont(7), MUTED);
@@ -98,6 +100,7 @@ function addRow(column, row, m) {
   const right = line.addStack();
   right.layoutHorizontally();
   right.centerAlignContent();
+  right.spacing = 0;
   right.size = new Size(m.priceWidth, ROW_HEIGHT);
   right.addSpacer();
   const colour = TONES[row.tone] ?? MUTED;
@@ -121,12 +124,12 @@ function buildWidget(family, columns, rows, updatedAt, now, update) {
   w.backgroundColor = BG;
   w.url = OPEN_URL;
   w.refreshAfterDate = refreshAfter(now);
-  w.setPadding(12, 12, 10, 12);
+  const m = columnMetrics(family, columns.length);
+  w.setPadding(m.padding.top, m.padding.side, m.padding.bottom, m.padding.side);
 
   const body = w.addStack();
   body.layoutHorizontally();
   body.topAlignContent();
-  const m = columnMetrics(family, columns.length);
   const height = Math.max(...columns.map((c) => c.length)) * ROW_HEIGHT;
   let next = 0;
   columns.forEach((items, i) => {
