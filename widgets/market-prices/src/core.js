@@ -418,22 +418,24 @@ function layoutFor(family, parsed) {
 
 const refreshAfter = (now) => new Date(toMs(now) + REFRESH_MINUTES * 60e3);
 
-// Content widths in points for a 6.1" iPhone, with the widget's padding taken off.
-const CONTENT_WIDTH = { small: 134, medium: 314 };
-const DIVIDER_GAP = 4; // space either side of a divider
+// Widget widths in points for a 6.1" iPhone, and the padding inside them (kept tight for room).
+const WIDGET_WIDTH = { small: 158, medium: 338 };
+const PADDING = { top: 12, side: 8, bottom: 10 };
+const DIVIDER_GAP = 2; // space either side of a divider
 const DIVIDER_WIDTH = 1;
-const LABEL_SHARE = 0.51; // of a column, for the label; the rest is for the price and arrow
+const LABEL_SHARE = 0.48; // of a column, for the label; the rest is for the price and arrow
 
 // Fixed sizes for a layout, so every label and price in a widget uses one font size and never
 // shrinks: 10.5 pt with three columns, 11 pt otherwise. Columns, gaps and dividers fill the width.
 function columnMetrics(family, columnCount) {
   const n = Math.max(1, columnCount | 0);
-  const contentWidth = family === 'small' ? CONTENT_WIDTH.small : CONTENT_WIDTH.medium;
+  const contentWidth = (family === 'small' ? WIDGET_WIDTH.small : WIDGET_WIDTH.medium) - 2 * PADDING.side;
   const columnWidth = (contentWidth - (n - 1) * (2 * DIVIDER_GAP + DIVIDER_WIDTH)) / n;
   const fontSize = n >= 3 ? 10.5 : 11;
   const arrowFontSize = fontSize - 3;
   const labelWidth = Math.round(columnWidth * LABEL_SHARE);
   return {
+    padding: { ...PADDING },
     contentWidth,
     columnWidth,
     dividerGap: DIVIDER_GAP,

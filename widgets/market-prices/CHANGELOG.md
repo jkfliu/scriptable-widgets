@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.2 (2026-11-06)
+
+- Fixes prices cut off with "…" in the three-column medium widget (1.1.1). The side margins are 8 pt instead of 12, and the space beside each divider 2 pt instead of 4, so each price has 54 pt instead of 48.7. Text stays at 10.5 pt.
+
 ## 1.1.1 (2026-11-05)
 
 - Slightly larger text in the three-column medium widget: 10.5 pt instead of 10 pt. The label column is a little wider so names like USD/SGD still fit.

@@ -121,6 +121,17 @@ describe('medium widget with fixtures', () => {
     assert.equal(labels[0].font.size, 10.5);
   });
 
+  test('tight margins: 8 pt either side, and no extra spacing inside rows', async () => {
+    const { widget } = await run();
+    assert.deepEqual(widget.padding, [12, 8, 10, 8]);
+    const body = widget.children.find((c) => c.kind === 'stack' && !c.vertical);
+    const rows = body.children.filter((c) => c.vertical).flatMap((col) => col.children);
+    for (const r of rows) {
+      assert.equal(r.spacing, 0, 'row');
+      for (const slot of r.children.filter((c) => c.kind === 'stack')) assert.equal(slot.spacing, 0, 'slot');
+    }
+  });
+
   test('labels and prices sit in fixed-width slots, prices aligned right', async () => {
     const { widget } = await run();
     const body = widget.children.find((c) => c.kind === 'stack' && !c.vertical);
